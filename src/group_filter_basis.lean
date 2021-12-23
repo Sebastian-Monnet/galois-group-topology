@@ -66,6 +66,7 @@ begin
 end
 
 
+
 noncomputable def force_noncomputable {α : Sort*} (a : α) : α :=
   function.const _ a (classical.choice ⟨a⟩)
 
@@ -133,6 +134,137 @@ begin
   sorry,
 end-/
 
+lemma a {K L : Type*} [field K] [field L] [algebra K L] (S : finset L) (σ : L ≃ₐ[K] L) : 
+(intermediate_field.adjoin K ↑S).map σ.to_alg_hom ≥ intermediate_field.adjoin K (σ.to_fun '' ↑S) :=
+begin
+  apply intermediate_field.gi.gc.l_le,
+  intros x hx,
+  cases hx with a hx,
+  cases hx with ha hax,
+  use a,
+  split,
+  {
+    dsimp,
+    apply intermediate_field.subset_adjoin,
+    exact ha,
+  },
+  {
+    exact hax,
+  },
+end
+
+lemma int_field_map_mono {K L : Type*} [field K] [field L] [algebra K L] 
+{E1 E2 : intermediate_field K L} (σ : L ≃ₐ[K] L) : 
+E1 ≤ E2 → E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom :=
+begin
+  intro h,
+  intros x hx,
+  cases hx with a hx,
+  cases hx with ha hax,
+  use a, 
+  simp,
+  refine ⟨_, hax⟩,
+  apply h,
+  exact ha,
+end
+
+lemma int_field_map_id {K L : Type*} [field K] [field L] [algebra K L] 
+{E : intermediate_field K L} : 
+E.map (alg_hom.id K L) = E :=
+begin
+  ext,
+  split,
+  {
+    intro hx,
+    cases hx with a hx,
+    cases hx with ha hax,
+    simp at hax,
+    rw ← hax,
+    exact ha, 
+  },
+  {
+    intro hx,
+    use x,
+    simp,
+    exact hx,
+  },
+end
+
+lemma int_field_map_mono_other {K L : Type*} [field K] [field L] [algebra K L] 
+{E1 E2 : intermediate_field K L} (σ : L ≃ₐ[K] L) : 
+E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom → E1 ≤ E2:=
+begin
+  sorry,
+end
+
+lemma algebra_map_map_inv {K L : Type*} [field K] [field L] [algebra K L] 
+(E : intermediate_field K L) (σ : L ≃ₐ[K] L) : 
+(E.to_subalgebra.map σ.to_alg_hom).map σ.symm.to_alg_hom = E.to_subalgebra :=
+begin
+  rw subalgebra.map_map E.to_subalgebra σ.symm.to_alg_hom σ.to_alg_hom,
+  simp,
+end
+
+lemma intermediate_field_map_map {K L1 L2 L3 : Type*} [field K] [field L1] [algebra K L1]
+[field L2] [algebra K L2] [field L3] [algebra K L3] 
+(E : intermediate_field K L1) (f : L1 →ₐ[K] L2) (g : L2 →ₐ[K] L3) : 
+(E.map f).map g = E.map (g.comp f) :=
+set_like.coe_injective $ set.image_image _ _ _
+
+lemma adjoin_map_eq_map_adjoin (K L : Type*) [field K] [field L] [algebra K L] (S : finset L) (σ : L ≃ₐ[K] L) : 
+(intermediate_field.adjoin K ↑S).map σ.to_alg_hom ≤ 
+intermediate_field.adjoin K (σ.to_fun '' ↑S) :=
+begin
+  have h := a (σ.to_fun '' S).to_finset (σ.symm),
+  have h2 : (σ.symm.to_fun '' ↑((σ.to_fun '' ↑S).to_finset)) = S,
+  {
+    ext,
+    split,
+    {
+      intro hx,
+      cases hx with b hx,
+      cases hx with hb hbx,
+      have h3 : ↑((σ.to_fun '' ↑S).to_finset) = σ.to_fun '' ↑S,
+      {
+        simp,
+      },
+      rw h3 at hb,
+      cases hb with a hb,
+      cases hb with ha hab,
+      rw ← hab at hbx,
+      simp at hbx,
+      rw ← hbx,
+      exact ha,
+    },
+    {
+      intro hx,
+      use σ x,
+      split,
+      {
+        simp,
+        use x,
+        exact ⟨hx, rfl⟩,
+      },
+      {
+        simp,
+      },
+    },
+  },
+  rw h2 at h,
+  apply int_field_map_mono_other σ.symm, 
+  rw ge_iff_le at h,
+  rw intermediate_field_map_map,
+  simp,
+  rw int_field_map_id,
+  dsimp,
+  dsimp at h,
+  have h3 : ↑((⇑σ '' ↑S).to_finset) = ⇑σ '' ↑S,
+  {
+    simp,
+  },
+  rw h3 at h,
+  exact h,
+end
 
 
 lemma im_in_adj_roots {K L : Type*} [field K] [field L] [algebra K L] {E : intermediate_field K L} 
@@ -184,12 +316,23 @@ begin
     rw ← hax,
     change polynomial.eval₂ (algebra_map K L) (σ a) (minpoly K a) = 0,
     rw ← polynomial.alg_hom_eval₂_algebra_map,
-    have h : function.injective (coe_fn σ),
+    have h_inj : function.injective (coe_fn σ),
     {
-      
+      exact ring_hom.injective σ.to_ring_hom,
     },
+    have h_zero : σ 0 = 0,
+    {
+      exact map_zero σ, 
+    },
+    have h_min_kills : polynomial.eval₂ (algebra_map K L) a (minpoly K a) = 0,
+    {
+      exact minpoly.aeval K a,
+    },
+    rw h_min_kills,
+    exact h_zero,
   },
-  have h_root_of_prod : (polynomial.map (algebra_map K L) (prod_min_polys h_findim)).is_root x,
+  have h_root_of_prod : (polynomial.map (algebra_map K L) 
+  (prod_min_polys h_findim)).is_root x,
   {
     sorry,
   },
