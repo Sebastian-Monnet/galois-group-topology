@@ -6,6 +6,7 @@ import order.filter.bases
 import data.finset.basic 
 import data.set.finite 
 import data.polynomial.eval 
+import linear_algebra.tensor_product_basis
 
 open_locale classical
 
@@ -521,6 +522,8 @@ subsets `Gal(L/E)` of `Gal(L/K)`, where `E/K` is finite -/
 def fixed_by_finite (K L : Type*) [field K] [field L] [algebra K L]: set (subgroup (L ≃ₐ[K] L)) :=
 intermediate_field.fixing_subgroup '' (finite_exts K L)
 
+----------------------------------------------------
+
 
  
 lemma finite_dimensional_sup {K L: Type*} [field K] [field L] [algebra K L] 
@@ -528,10 +531,12 @@ lemma finite_dimensional_sup {K L: Type*} [field K] [field L] [algebra K L]
 → finite_dimensional K ↥(E1 ⊔ E2) :=
 begin
   -- will just wait for Browning's version to get into mathlib
-  sorry,
+  rintro ⟨h1, h2⟩,
+  resetI,
+  exact intermediate_field.finite_dimensional_sup E1 E2,
 end
 
-
+--------------------------------------------------------
 
 lemma mem_fixing_subgroup_iff {K L : Type*} [field K] [field L] [algebra K L] 
 (E : intermediate_field K L) (σ : (L ≃ₐ[K] L)): σ ∈ E.fixing_subgroup ↔  
