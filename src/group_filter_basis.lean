@@ -278,14 +278,57 @@ begin
   exact h,
 end
 
+lemma eq_subalg_iff_eq_submodule {R : Type*} {A : Type*} [comm_semiring R] [semiring A] 
+[algebra R A] (E1 E2 : subalgebra R A):
+E1 = E2 ↔ E1.to_submodule = E2.to_submodule :=
+begin
+  exact subalgebra.to_submodule_inj.symm,
+end
+
+
+lemma span_subalg_of_span_submod {R A : Type*} [comm_semiring R] [semiring A] 
+[algebra R A] (s : set A) (h : submodule.span R s = ⊤) : 
+algebra.adjoin R s = ⊤ :=
+begin
+  rw subalgebra.to_submodule_inj.symm,
+  rw algebra.adjoin_eq_span,
+  have h' : submodule.span R s ≤ submodule.span R (submonoid.closure s),
+  {
+    have h'' : s ≤ submonoid.closure s,
+    {
+      apply submonoid.subset_closure,
+    },
+    exact (submodule.gi R A).gc.monotone_l h'',
+  },
+  rw h at h',
+  simp,
+  exact eq_top_iff.mpr h',
+end
 
 lemma gen_by_basis {K L : Type*} [field K] [field L] [algebra K L]
 {E : intermediate_field K L} (h_findim : finite_dimensional K E) :
 E = intermediate_field.adjoin K (finset.univ.image ((algebra_map ↥E L) ∘
 finite_dimensional.fin_basis K E)) :=
 begin
-  sorry,
+  apply le_antisymm,
+  {
+    let s : set L := (finset.image (⇑(algebra_map ↥E L) ∘ 
+    ⇑(finite_dimensional.fin_basis K ↥E)) finset.univ),
+    change E ≤ intermediate_field.adjoin K s,
+    have h : E.to_subalgebra ≤ algebra.adjoin K s,
+    {
+      
+    },
+  },
+  { rw intermediate_field.adjoin_le_iff,
+    intros l hl,
+    simp at hl,
+    rcases hl with ⟨i, rfl⟩,
+    let e := (finite_dimensional.fin_basis K ↥E) i,
+    exact e.2,
+  },
 end
+
 
 
 lemma im_in_adj_roots {K L : Type*} [field K] [field L] [algebra K L] 
