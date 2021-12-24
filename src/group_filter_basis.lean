@@ -65,6 +65,13 @@ begin
     simp,
 end
 
+lemma root_prod_of_root_elem {K L : Type*} [field K] [field L] [algebra K L] 
+{S : finset (polynomial K)} {x : L} {p : polynomial K} {hp : p ∈ S} 
+(h_root : (polynomial.map (algebra_map K L) p).is_root x) : 
+(polynomial.map (algebra_map K L) (finset.prod S id)).is_root x :=
+begin
+  sorry, 
+end
 
 
 noncomputable def force_noncomputable {α : Sort*} (a : α) : α :=
@@ -124,15 +131,12 @@ begin
   exact prod_min_polys_monic h_findim,
 end
 
-/--lemma adjoin_basis {K L : Type*} [field K] [field L] [algebra K L] {E : intermediate_field K L} 
-(h_findim : finite_dimensional K E) : 
-E = intermediate_field.adjoin K (finset.univ.image ((algebra_map ↥E L) ∘ 
-finite_dimensional.fin_basis K E)) :=
-begin
-  let S := (finset.univ.image ((algebra_map ↥E L) ∘ finite_dimensional.fin_basis K E)),
-  change E = intermediate_field.adjoin K S,
-  sorry,
-end-/
+
+lemma intermediate_field_map_map {K L1 L2 L3 : Type*} [field K] [field L1] [algebra K L1]
+[field L2] [algebra K L2] [field L3] [algebra K L3] 
+(E : intermediate_field K L1) (f : L1 →ₐ[K] L2) (g : L2 →ₐ[K] L3) : 
+(E.map f).map g = E.map (g.comp f) :=
+set_like.coe_injective $ set.image_image _ _ _
 
 lemma a {K L : Type*} [field K] [field L] [algebra K L] (S : finset L) (σ : L ≃ₐ[K] L) : 
 (intermediate_field.adjoin K ↑S).map σ.to_alg_hom ≥ intermediate_field.adjoin K (σ.to_fun '' ↑S) :=
@@ -154,17 +158,16 @@ begin
 end
 
 lemma int_field_map_mono {K L : Type*} [field K] [field L] [algebra K L] 
-{E1 E2 : intermediate_field K L} (σ : L ≃ₐ[K] L) : 
-E1 ≤ E2 → E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom :=
+{E1 E2 : intermediate_field K L} (σ : L ≃ₐ[K] L) (h12 : E1 ≤ E2): 
+E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom :=
 begin
-  intro h,
   intros x hx,
   cases hx with a hx,
   cases hx with ha hax,
   use a, 
   simp,
   refine ⟨_, hax⟩,
-  apply h,
+  apply h12,
   exact ha,
 end
 
@@ -191,11 +194,23 @@ begin
 end
 
 lemma int_field_map_mono_other {K L : Type*} [field K] [field L] [algebra K L] 
-{E1 E2 : intermediate_field K L} (σ : L ≃ₐ[K] L) : 
-E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom → E1 ≤ E2:=
+{E1 E2 : intermediate_field K L} (σ : L ≃ₐ[K] L) 
+(h12 : E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom): 
+E1 ≤ E2:=
 begin
-  sorry,
+  have h_map_map := int_field_map_mono σ.symm h12,
+  rw intermediate_field_map_map at h_map_map,
+  rw intermediate_field_map_map at h_map_map,
+  simp [int_field_map_id] at h_map_map,
+  exact h_map_map,
 end
+
+lemma int_field_map_iso {K L : Type*} [field K] [field L] [algebra K L] 
+{E1 E2 : intermediate_field K L} (σ : L ≃ₐ[K] L) :
+E1 ≤ E2 ↔ E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom :=
+⟨int_field_map_mono σ, int_field_map_mono_other σ⟩ 
+
+
 
 lemma algebra_map_map_inv {K L : Type*} [field K] [field L] [algebra K L] 
 (E : intermediate_field K L) (σ : L ≃ₐ[K] L) : 
@@ -205,13 +220,10 @@ begin
   simp,
 end
 
-lemma intermediate_field_map_map {K L1 L2 L3 : Type*} [field K] [field L1] [algebra K L1]
-[field L2] [algebra K L2] [field L3] [algebra K L3] 
-(E : intermediate_field K L1) (f : L1 →ₐ[K] L2) (g : L2 →ₐ[K] L3) : 
-(E.map f).map g = E.map (g.comp f) :=
-set_like.coe_injective $ set.image_image _ _ _
 
-lemma adjoin_map_eq_map_adjoin (K L : Type*) [field K] [field L] [algebra K L] (S : finset L) (σ : L ≃ₐ[K] L) : 
+
+lemma adjoin_map_leq_map_adjoin {K L : Type*} [field K] [field L] [algebra K L] (S : finset L) 
+(σ : L ≃ₐ[K] L) : 
 (intermediate_field.adjoin K ↑S).map σ.to_alg_hom ≤ 
 intermediate_field.adjoin K (σ.to_fun '' ↑S) :=
 begin
@@ -267,21 +279,31 @@ begin
 end
 
 
-lemma im_in_adj_roots {K L : Type*} [field K] [field L] [algebra K L] {E : intermediate_field K L} 
-(h_findim : finite_dimensional K E) (σ : L →ₐ[K] L) : 
-intermediate_field.map E σ ≤ adj_roots h_findim := 
+lemma gen_by_basis {K L : Type*} [field K] [field L] [algebra K L]
+{E : intermediate_field K L} (h_findim : finite_dimensional K E) :
+E = intermediate_field.adjoin K (finset.univ.image ((algebra_map ↥E L) ∘
+finite_dimensional.fin_basis K E)) :=
+begin
+  sorry,
+end
+
+
+lemma im_in_adj_roots {K L : Type*} [field K] [field L] [algebra K L] 
+{E : intermediate_field K L} 
+(h_findim : finite_dimensional K E) (σ : L ≃ₐ[K] L) : 
+intermediate_field.map E σ.to_alg_hom ≤ adj_roots h_findim := 
 begin
   let S := (finset.univ.image ((algebra_map ↥E L) ∘ finite_dimensional.fin_basis K E)),
   have h_gen : E = intermediate_field.adjoin K S,
   {
-    sorry,
+    exact gen_by_basis h_findim,
   },
-  have h_adjoin_swap : E.map σ = intermediate_field.adjoin K (σ.to_fun '' S),
+  have h_adjoin_swap : E.map σ.to_alg_hom = intermediate_field.adjoin K (σ.to_fun '' S),
   {
     rw h_gen,
     apply le_antisymm,
     {
-      sorry,
+      exact adjoin_map_leq_map_adjoin S σ,
     },
     {
       apply intermediate_field.gi.gc.l_le,
@@ -314,15 +336,15 @@ begin
     simp,
     rw ← polynomial.eval₂_eq_eval_map,
     rw ← hax,
-    change polynomial.eval₂ (algebra_map K L) (σ a) (minpoly K a) = 0,
+    change polynomial.eval₂ (algebra_map K L) (σ.to_alg_hom a) (minpoly K a) = 0,
     rw ← polynomial.alg_hom_eval₂_algebra_map,
     have h_inj : function.injective (coe_fn σ),
     {
-      exact ring_hom.injective σ.to_ring_hom,
+      exact ring_hom.injective σ.to_alg_hom.to_ring_hom,
     },
     have h_zero : σ 0 = 0,
     {
-      exact map_zero σ, 
+      simp, 
     },
     have h_min_kills : polynomial.eval₂ (algebra_map K L) a (minpoly K a) = 0,
     {
@@ -334,7 +356,12 @@ begin
   have h_root_of_prod : (polynomial.map (algebra_map K L) 
   (prod_min_polys h_findim)).is_root x,
   {
-    sorry,
+    let p := minpoly K a,
+    have hp : p ∈ min_polys h_findim,
+    {
+      unfold min_polys,
+      
+    },
   },
   unfold root_finset,
   simp,
