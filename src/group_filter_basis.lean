@@ -65,14 +65,33 @@ begin
    simp,
 end
 
+
+
+-- polynomial.map (algebra_map K L) (p i)).is_root x
+-- polynomial.map (algebra_map K L) (finset.prod s id)).is_root x
+
+lemma is_root_prod {K L : Type*} [field K] [field L] [algebra K L]
+  (s : finset (polynomial K))  (x : L) :
+  (polynomial.map (algebra_map K L) (finset.prod s id)).is_root x
+   ↔ ∃ (p ∈ s), (polynomial.map (algebra_map K L) p).is_root x :=
+begin
+  simp,
+  rw polynomial.map_prod,
+  rw polynomial.eval_prod,
+  rw finset.prod_eq_zero_iff,
+  simp,
+end
+
+
 lemma root_prod_of_root_elem {K L : Type*} [field K] [field L] [algebra K L] 
 {S : finset (polynomial K)} {x : L} {p : polynomial K} (hp : p ∈ S)
 (h_root : (polynomial.map (algebra_map K L) p).is_root x) : 
 (polynomial.map (algebra_map K L) (finset.prod S id)).is_root x :=
 begin
-  sorry, 
+  rw is_root_prod S x,
+  use p,
+  exact ⟨hp, h_root⟩,
 end
-
 
 noncomputable def force_noncomputable {α : Sort*} (a : α) : α :=
   function.const _ a (classical.choice ⟨a⟩)
@@ -305,9 +324,41 @@ begin
   exact eq_top_iff.mpr h',
 end
 
+
+
+lemma subalg_le_gen_by_basis {K L : Type*} [field K] [field L] [algebra K L]
+{E : intermediate_field K L} (h_findim : finite_dimensional K E)
+(b := finite_dimensional.fin_basis K ↥E) :
+E.to_subalgebra ≤ algebra.adjoin K (finset.image ((algebra_map ↥E L) ∘ b) finset.univ) :=
+begin
+   intros x hx,
+   change x ∈ E at hx,
+   let x' : ↥E := ⟨x, hx⟩,
+   have hx' := basis.mem_span b x',
+   apply algebra.span_le_adjoin K _,
+   simp only [function.comp_app, finset.coe_image, finset.coe_univ, set.image_univ],
+   rw set.range_comp,
+   have h2 : ((E.val : E →ₗ[K] L) '' set.range ⇑b) = 
+   (⇑(algebra_map ↥E L) '' set.range ⇑b),
+   {
+     refl,
+   },
+   rw ← h2,
+   rw ← submodule.map_span (E.val : E →ₗ[K] L) (set.range ⇑b),
+   use x',
+   split,
+   {
+     exact hx',
+   },
+   {
+     refl,
+   },
+end
+
+
 lemma gen_by_basis {K L : Type*} [field K] [field L] [algebra K L]
 {E : intermediate_field K L} (h_findim : finite_dimensional K E) :
-E = intermediate_field.adjoin K (set.range ((algebra_map ↥E L) ∘
+E = intermediate_field.adjoin K (finset.univ.image ((algebra_map ↥E L) ∘
 finite_dimensional.fin_basis K E)) :=
 begin
   apply le_antisymm,
@@ -317,8 +368,16 @@ begin
     change E ≤ intermediate_field.adjoin K s,
     have h : E.to_subalgebra ≤ algebra.adjoin K s,
     {
-      sorry,
+      exact subalg_le_gen_by_basis h_findim,
     },
+    have h2 : algebra.adjoin K s ≤ (intermediate_field.adjoin K s).to_subalgebra,
+    {
+      exact intermediate_field.algebra_adjoin_le_adjoin K s,
+    },
+  intros x hx,
+  apply h2,
+  apply h,
+  exact hx,
   },
   { rw intermediate_field.adjoin_le_iff,
     intros l hl,
@@ -632,4 +691,5 @@ group_filter_basis (L ≃ₐ[K] L) :=
     },
   end
 }
+
 
