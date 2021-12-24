@@ -62,11 +62,11 @@ begin
    let v : E := (finite_dimensional.fin_basis K E) i,
    change is_integral K v,
    refine is_integral_of_mem_of_fg (⊤ : subalgebra K E) h_findim.out (v : E) _,
-    simp,
+   simp,
 end
 
 lemma root_prod_of_root_elem {K L : Type*} [field K] [field L] [algebra K L] 
-{S : finset (polynomial K)} {x : L} {p : polynomial K} {hp : p ∈ S} 
+{S : finset (polynomial K)} {x : L} {p : polynomial K} (hp : p ∈ S)
 (h_root : (polynomial.map (algebra_map K L) p).is_root x) : 
 (polynomial.map (algebra_map K L) (finset.prod S id)).is_root x :=
 begin
@@ -359,9 +359,43 @@ begin
     let p := minpoly K a,
     have hp : p ∈ min_polys h_findim,
     {
+      --unfold min_polys,
+      have ha' : a ∈ (finset.image (⇑(algebra_map ↥E L) ∘ 
+      coe_fn(finite_dimensional.fin_basis K ↥E)) finset.univ) := ha,
+      rw finset.mem_image at ha',
+      cases ha' with b ha',
+      cases ha' with hb ha',
+      let v := (finite_dimensional.fin_basis K ↥E) b,
+      have h_minpoly_eq : minpoly K v = minpoly K a,
+      {
+        have hva : a = v,
+        {
+          change (algebra_map ↥E L)((finite_dimensional.fin_basis K ↥E) b) = a
+          at ha',
+          rw ← ha',
+          refl,
+        },
+        rw hva,
+        refine minpoly.eq_of_algebra_map_eq (algebra_map ↥E L).injective _ rfl,
+        {
+          refine is_integral_of_mem_of_fg (⊤ : subalgebra K E) h_findim.out (v : E) _,
+          simp,
+        },
+      },
+      change minpoly K a ∈ min_polys h_findim,
       unfold min_polys,
-      
+      rw finset.mem_image,
+      use b,
+      split, 
+      {
+        exact finset.mem_univ b, 
+      },
+      {
+        simp,
+        exact h_minpoly_eq,
+      },
     },
+    exact root_prod_of_root_elem hp h_root_of_minpoly,
   },
   unfold root_finset,
   simp,
