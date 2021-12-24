@@ -307,7 +307,7 @@ end
 
 lemma gen_by_basis {K L : Type*} [field K] [field L] [algebra K L]
 {E : intermediate_field K L} (h_findim : finite_dimensional K E) :
-E = intermediate_field.adjoin K (finset.univ.image ((algebra_map ↥E L) ∘
+E = intermediate_field.adjoin K (set.range ((algebra_map ↥E L) ∘
 finite_dimensional.fin_basis K E)) :=
 begin
   apply le_antisymm,
@@ -317,7 +317,7 @@ begin
     change E ≤ intermediate_field.adjoin K s,
     have h : E.to_subalgebra ≤ algebra.adjoin K s,
     {
-      
+      sorry,
     },
   },
   { rw intermediate_field.adjoin_le_iff,
