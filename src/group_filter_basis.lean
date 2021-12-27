@@ -1,12 +1,5 @@
 import field_theory.galois
-import algebra.group.basic
-import ring_theory.tensor_product
 import topology.algebra.filter_basis
-import order.filter.bases 
-import data.finset.basic 
-import data.set.finite 
-import data.polynomial.eval 
-import linear_algebra.tensor_product_basis
 
 open_locale classical
 
@@ -111,7 +104,8 @@ adj_roots h_findim =
 intermediate_field.adjoin K (coe (root_finset (prod_min_polys h_findim) L) : set L) :=
 rfl 
 
-lemma adj_finset_finite_dimensional {K L : Type*} [field K] [field L] [algebra K L] (S : finset L)  
+lemma adj_finset_finite_dimensional {K L : Type*} [field K] [field L] [algebra K L]
+(S : finset L)  
 (h_int : ∀ (x : L), x ∈ S → is_integral K x) : 
 finite_dimensional K (intermediate_field.adjoin K (coe S : set L)) :=
 begin
@@ -242,7 +236,7 @@ end
 
 
 
-lemma adjoin_map_leq_map_adjoin {K L : Type*} [field K] [field L] [algebra K L] (S : finset L) 
+lemma adjoin_map_le_map_adjoin {K L : Type*} [field K] [field L] [algebra K L] (S : finset L) 
 (σ : L ≃ₐ[K] L) : 
 (intermediate_field.adjoin K ↑S).map σ.to_alg_hom ≤ 
 intermediate_field.adjoin K (σ.to_fun '' ↑S) :=
@@ -297,6 +291,27 @@ begin
   rw h3 at h,
   exact h,
 end
+
+lemma adjoin_map_eq_map_adjoin {K L : Type*} [field K] [field L] [algebra K L] (S : finset L) 
+(σ : L ≃ₐ[K] L) : 
+(intermediate_field.adjoin K ↑S).map σ.to_alg_hom =
+intermediate_field.adjoin K (σ.to_fun '' ↑S) :=
+begin
+  apply le_antisymm,
+  exact adjoin_map_le_map_adjoin S σ,
+  apply intermediate_field.gi.gc.l_le,
+  intros y hy,
+  cases hy with x hx,
+  cases hx with hx hxy,
+  use x,
+  split,
+  dsimp,
+  apply intermediate_field.subset_adjoin,
+  exact hx,
+  exact hxy,
+end
+
+
 
 lemma eq_subalg_iff_eq_submodule {R : Type*} {A : Type*} [comm_semiring R] [semiring A] 
 [algebra R A] (E1 E2 : subalgebra R A):
@@ -390,6 +405,145 @@ begin
 end
 
 
+def function_to_field_map {K L L' : Type*} [field K] [field L] [field L']
+[algebra K L] [algebra K L'] (E : intermediate_field K L) (f : L →ₐ[K] L') :
+E → E.map f :=
+begin
+  intro x,
+  have hy : f x ∈ E.map f,
+  {
+    use x,
+    split,
+    {
+      simp,
+    }, 
+    {
+      simp,
+    },
+  },
+  exact ⟨f x, hy⟩,
+end
+
+
+lemma equiv_map_map_symm {K L L' : Type*} [field K] [field L] [field L']
+[algebra K L] [algebra K L'] (E : intermediate_field K L) (σ : L ≃ₐ[K] L') :
+(E.map σ.to_alg_hom).map σ.symm.to_alg_hom = E :=
+begin
+  ext,
+  split,
+  {
+    rintros ⟨y, ⟨a, ⟨ha, hay⟩⟩, hyx⟩,
+    rw ← hay at hyx,
+    simp at hyx,
+    rw ← hyx,
+    exact ha,
+  }, 
+  {
+    intro hx,
+    use σ x,
+    split,
+    {
+      use x,
+      exact ⟨hx, rfl⟩,
+    },
+    {
+      simp,
+    },
+  },
+end
+
+example  {K L L' : Type*} [field K] [field L] [field L']
+[algebra K L] [algebra K L'] (E : intermediate_field K L) (σ : L ≃ₐ[K] L') (x : L):
+σ.symm (σ x) = x :=
+begin
+   simp,
+end
+
+def equiv_to_inv_field_map {K L L' : Type*} [field K] [field L] [field L']
+[algebra K L] [algebra K L'] (E : intermediate_field K L) (σ : L ≃ₐ[K] L') :
+E.map σ.to_alg_hom → E :=
+begin
+  have f := function_to_field_map (E.map σ.to_alg_hom) σ.symm.to_alg_hom,
+  rw equiv_map_map_symm at f,
+  exact f,
+end
+
+
+
+lemma im_in_map {K L L' : Type*} [field K] [field L] [field L']
+[algebra K L] [algebra K L'] (E : intermediate_field K L) (σ : L ≃ₐ[K] L') 
+(x : E) :
+σ x ∈ E.map σ.to_alg_hom :=
+begin
+  use x,
+  simp,
+end
+
+lemma inv_im_in_subfield {K L L' : Type*} [field K] [field L] [field L']
+[algebra K L] [algebra K L'] (E : intermediate_field K L) (σ : L ≃ₐ[K] L') 
+(y : E.map σ.to_alg_hom) :
+σ.symm y ∈ E :=
+begin
+  cases y with x hx,
+  cases hx with a ha,
+  cases ha with ha hax,
+  simp,
+  rw ← hax,
+  simp,
+  exact ha,
+end
+
+
+def intermediate_field_equiv_map {K L L' : Type*} [field K] [field L] [field L']
+[algebra K L] [algebra K L'] (E : intermediate_field K L) (σ : L ≃ₐ[K] L') : 
+E ≃ₐ[K] E.map σ.to_alg_hom :=
+{ to_fun := λ x, ⟨σ x, im_in_map E σ x⟩,
+  inv_fun := λ x, ⟨σ.symm x, inv_im_in_subfield E σ x⟩,
+  left_inv := 
+  begin
+    intro x,
+    simp, 
+  end,
+  right_inv :=
+  begin
+    intro x,
+    simp,
+  end,
+  map_mul' := 
+  begin
+    intros x y,
+    simp,
+    refl, 
+  end,
+  map_add' :=
+  begin
+    intros x y,
+    simp,
+    refl, 
+  end,
+  commutes' :=
+  begin
+    intro x,
+    ext,
+    exact σ.commutes x,
+  end
+   }
+
+lemma equiv_finite_dimensional {K L L' : Type*} [field K] [field L] [field L']
+[algebra K L] [algebra K L'] (σ : L ≃ₐ[K] L') (h_findim : finite_dimensional K L) :
+finite_dimensional K L' :=
+begin
+   exact linear_equiv.finite_dimensional σ.to_linear_equiv,
+end
+
+
+
+lemma im_finite_dimensional {K L : Type*} [field K] [field L] [algebra K L]
+{E : intermediate_field K L} (σ : L ≃ₐ[K] L) (h_findim : finite_dimensional K E): 
+finite_dimensional K (E.map σ.to_alg_hom) :=
+linear_equiv.finite_dimensional (intermediate_field_equiv_map E σ).to_linear_equiv
+
+
 
 lemma im_in_adj_roots {K L : Type*} [field K] [field L] [algebra K L] 
 {E : intermediate_field K L} 
@@ -406,7 +560,7 @@ begin
     rw h_gen,
     apply le_antisymm,
     {
-      exact adjoin_map_leq_map_adjoin S σ,
+      exact adjoin_map_le_map_adjoin S σ,
     },
     {
       apply intermediate_field.gi.gc.l_le,
@@ -652,47 +806,46 @@ group_filter_basis (L ≃ₐ[K] L) :=
   conj' := 
   begin
     rintros σ U ⟨H, ⟨E, hE, rfl⟩, rfl⟩,
-    let N : intermediate_field K L := adj_roots hE,
-    use N.fixing_subgroup.carrier, 
-    split, 
+    let F : intermediate_field K L := E.map (σ.symm.to_alg_hom),
+    use F.fixing_subgroup.carrier, 
+    split,
     {
-      use N.fixing_subgroup,
-      refine ⟨_, rfl⟩,
-      use N,
-      exact ⟨adj_roots_fin_dim hE, rfl⟩,
+      rw mem_gal_basis_iff,
+      use F.fixing_subgroup,
+      split,
+      {
+        use F,
+        refine ⟨_, rfl⟩,
+        change finite_dimensional K F,
+        refine im_finite_dimensional σ.symm hE,
+      },
+      refl,
+    },
+    intros g hg,
+    rw set.mem_preimage,
+    change σ * g * σ⁻¹ ∈ E.fixing_subgroup,
+    rw mem_fixing_subgroup_iff,
+    intros x hx,
+    change σ(g(σ⁻¹ x)) = x,
+    have h_in_F : σ⁻¹ x ∈ F,
+    {
+      use x,
+      split,
+      exact hx,
+      dsimp,
+      rw ← alg_equiv.inv_fun_eq_symm,
+      refl,
     },
     {
-      intros g hg,
-      change σ * g * σ⁻¹ ∈ E.fixing_subgroup, 
-      intro x,
-      change σ (g (σ⁻¹ x)) = x,
-      have h1 : σ⁻¹ x ∈ N,
+      have h_g_fix : g (σ⁻¹ x) = (σ⁻¹ x),
       {
-        let alg_hom : L →ₐ[K] L := σ.symm,
-        have h_contain : intermediate_field.map E alg_hom ≤ N,
-        {
-          exact im_in_adj_roots hE σ.symm,
-        },
-        apply h_contain,
-        change σ.symm x ∈ E.map alg_hom, 
-        change alg_hom x ∈ E.map alg_hom,
-        use x,
-        split,
-        simp,
-        refl,
-      },
-      have h2 : g (σ⁻¹ x) = σ⁻¹ x,
-      {
-        rw subgroup.mem_carrier at hg,
-        rw mem_fixing_subgroup_iff at hg,
+        simp at hg,
+        rw mem_fixing_subgroup_iff F g at hg,
         specialize hg (σ⁻¹ x),
-        exact hg h1,
+        exact hg h_in_F,
       },
-      {
-        rw h2,
-        change σ(σ.symm x) = x,
-        simp,
-      },
+      rw h_g_fix,
+      rw inv_comp,
     },
   end
 }
