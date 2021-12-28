@@ -40,11 +40,6 @@ intermediate_field.adjoin K (σ '' S) ≤ (intermediate_field.adjoin K S).map σ
 intermediate_field.gi.gc.l_le $
   set.image_subset ⇑σ $ intermediate_field.subset_adjoin K S
 
---#print intermediate_field.set_like
---#check intermediate_field.map
-
---#check galois_insertion.strict_mono_u
-
 lemma foo2 {K L : Type*} [field K] [field L] [algebra K L] 
   (S : set L) {M : Type*} [field M] [algebra K M] (σ : L →ₐ[K] M) : 
   ∀ (F : intermediate_field K M),
@@ -98,12 +93,10 @@ begin
   simp,
 end
 
---#check map_adjoin_ge_adjoin_map
 lemma adjoin_map_le_map_adjoin {K L : Type*} [field K] [field L] [algebra K L] (S : set L) 
 (σ : L ≃ₐ[K] L) : 
 (intermediate_field.adjoin K S).map σ.to_alg_hom ≤ 
 intermediate_field.adjoin K (σ.to_fun '' S) :=
---map_adjoin_ge_adjoin_map (S : set L) σ.to_alg_hom
 begin
   rw intermediate_field.adjoin_map,
   apply le_of_eq _,
