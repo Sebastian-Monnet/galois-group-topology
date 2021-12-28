@@ -41,30 +41,27 @@ intermediate_field.gi.gc.l_le $
   set.image_subset ⇑σ $ intermediate_field.subset_adjoin K S
 
 --#print intermediate_field.set_like
-#check intermediate_field.map
--- instance {K L : Type*} [field K] [field L] [algebra K L]  : 
---   set_like (intermediate_field K L) L := infer_instance
+--#check intermediate_field.map
+
+--#check galois_insertion.strict_mono_u
+
+lemma foo2 {K L : Type*} [field K] [field L] [algebra K L] 
+  (S : set L) {M : Type*} [field M] [algebra K M] (σ : L →ₐ[K] M) : 
+  ∀ (F : intermediate_field K M),
+  σ '' S ⊆ F → (intermediate_field.adjoin K S).map σ ≤ F :=
+begin
+  have giM := @intermediate_field.gi K _ M _ _, -- don't need `let`!
+  intros F hSF,
+  rw intermediate_field.adjoin_map,
+  exact giM.gc.l_le hSF,
+end
+
 lemma foo {K L : Type*} [field K] [field L] [algebra K L] 
   (S : set L) {M : Type*} [field M] [algebra K M] (σ : L →ₐ[K] M) : 
 (intermediate_field.adjoin K S).map σ ≤  
 intermediate_field.adjoin K (σ '' S) :=
-begin
-  let giL := @intermediate_field.gi K _ L _ _,
-  let giM := @intermediate_field.gi K _ M _ _,
-  have : σ '' S ⊆ intermediate_field.adjoin K (σ '' S),
-    exact intermediate_field.subset_adjoin K (⇑σ '' S),
-  -- α is set L or set M
-  -- β is intermediate_field L or intermediate_field M
-  -- l is `adjoin K`
-  -- u is `coe`
-  -- intermediate_field.map (l₁ S) σ ≤ l₂ (set.image S σ)
-  -- TODO it's fune
-  sorry
-end
-  
-  #check subalgebra.map_mono
-  #check @galois_insertion--intermediate_field.gi.gc.l_le $
---  set.image_subset ⇑σ $ intermediate_field.subset_adjoin K S
+foo2 S σ _ (intermediate_field.subset_adjoin K (⇑σ '' S))
+
 lemma intermediate_field.map_mono {K L M : Type*} [field K] [field L] [field M]
   [algebra K L] [algebra K M] {E1 E2 : intermediate_field K L}
   (σ : L ≃ₐ[K] M) (h12 : E1 ≤ E2) : 
@@ -74,24 +71,7 @@ set.image_subset σ h12
 lemma int_field_map_id {K L : Type*} [field K] [field L] [algebra K L] 
 {E : intermediate_field K L} : 
 E.map (alg_hom.id K L) = E :=
-begin
-  ext,
-  split,
-  {
-    intro hx,
-    cases hx with a hx,
-    cases hx with ha hax,
-    simp at hax,
-    rw ← hax,
-    exact ha, 
-  },
-  {
-    intro hx,
-    use x,
-    simp,
-    exact hx,
-  },
-end
+set_like.coe_injective $ set.image_id (E : set L)
 
 lemma int_field_map_mono_other {K L : Type*} [field K] [field L] [algebra K L] 
 {E1 E2 : intermediate_field K L} {M : Type*} [field M] [algebra K M]
@@ -99,21 +79,10 @@ lemma int_field_map_mono_other {K L : Type*} [field K] [field L] [algebra K L]
 (h12 : E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom): 
 E1 ≤ E2:=
 begin
-  convert intermediate_field.map_mono σ.symm h12,
-  rw intermediate_field.map_map,
-  { simp only [alg_equiv.symm_comp, alg_equiv.to_alg_hom_eq_coe],
-    rw int_field_map_id,
-  },
-  { simp,
-    rw intermediate_field.map_map,
-    simp,
-  --simp only [alg_equiv.symm_comp, alg_equiv.to_alg_hom_eq_coe],
-    rw int_field_map_id,
- }
---  library_search,
---  simp,
---  library_search,
-
+  convert intermediate_field.map_mono σ.symm h12;
+  rw intermediate_field.map_map;
+  simp only [alg_equiv.symm_comp, 
+    alg_equiv.to_alg_hom_eq_coe, int_field_map_id],
 end
 
 lemma int_field_map_iso {K L : Type*} [field K] [field L] [algebra K L] 
@@ -129,64 +98,16 @@ begin
   simp,
 end
 
-#exit
-#check map_adjoin_ge_adjoin_map
+--#check map_adjoin_ge_adjoin_map
 lemma adjoin_map_le_map_adjoin {K L : Type*} [field K] [field L] [algebra K L] (S : set L) 
 (σ : L ≃ₐ[K] L) : 
 (intermediate_field.adjoin K S).map σ.to_alg_hom ≤ 
 intermediate_field.adjoin K (σ.to_fun '' S) :=
 --map_adjoin_ge_adjoin_map (S : set L) σ.to_alg_hom
 begin
-  have h := map_adjoin_ge_adjoin_map (σ '' S) (σ.symm.to_alg_hom : L →ₐ L),
-  have h2 : (σ.symm '' ((σ '' S))) = S,
-  {
-    ext,
-    split,
-    {
-      intro hx,
-      cases hx with b hx,
-      cases hx with hb hbx,
-      have h3 : ((σ '' S)) = σ '' S,
-      {
-        simp,
-      },
-      rw h3 at hb,
-      cases hb with a hb,
-      cases hb with ha hab,
-      rw ← hab at hbx,
-      simp at hbx,
-      rw ← hbx,
-      exact ha,
-    },
-    {
-      intro hx,
-      use σ x,
-      split,
-      {
-        simp,
-        use x,
-        exact ⟨hx, rfl⟩,
-      },
-      {
-        simp,
-      },
-    },
-  },
-  simp at h,
-  rw h2 at h,
-  apply int_field_map_mono_other σ.symm, 
-  rw ge_iff_le at h,
-  rw intermediate_field_map_map,
-  simp,
-  rw int_field_map_id,
-  dsimp,
-  dsimp at h,
-  have h3 : ↑((⇑σ '' ↑S).to_finset) = ⇑σ '' ↑S,
-  {
-    simp,
-  },
-  rw h3 at h,
-  exact h,
+  rw intermediate_field.adjoin_map,
+  apply le_of_eq _,
+  refl,
 end
 
 lemma adjoin_map_eq_map_adjoin {K L : Type*} [field K] [field L] [algebra K L] (S : finset L) 
