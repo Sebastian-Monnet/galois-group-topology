@@ -100,74 +100,40 @@ begin
   exact algebra.span_le_adjoin R s,
 end
 
+-- this and the next few lemmas would make some nice PR's
+@[simps] def ring_equiv.subsemiring_equiv_map {A B : Type*} [non_assoc_semiring A]
+  [non_assoc_semiring B] (e : A ≃+* B) (R : subsemiring A) :
+  R ≃+* R.map e.to_ring_hom :=
+{ ..e.to_add_equiv.add_submonoid_equiv_map R.to_add_submonoid,
+  ..e.to_mul_equiv.submonoid_equiv_map R.to_submonoid}
 
-lemma im_in_map {K L L' : Type*} [field K] [field L] [field L']
-[algebra K L] [algebra K L'] (E : intermediate_field K L) (σ : L ≃ₐ[K] L') 
-(x : E) :
-σ x ∈ E.map σ.to_alg_hom := 
-⟨x, x.2, rfl⟩
+def ring_equiv.subring_equiv_map {A B : Type*} [ring A]
+  [ring B] (e : A ≃+* B) (R : subring A) :
+  R ≃+* R.map e.to_ring_hom :=
+e.subsemiring_equiv_map R.to_subsemiring
 
-lemma inv_im_in_subfield {K L L' : Type*} [field K] [field L] [field L']
-[algebra K L] [algebra K L'] (E : intermediate_field K L) (σ : L ≃ₐ[K] L') 
-(y : E.map σ.to_alg_hom) :
-σ.symm y ∈ E :=
-begin
-  cases y with x hx,
-  cases hx with a ha,
-  cases ha with ha hax,
-  simp,
-  rw ← hax,
-  simp,
-  exact ha,
-end
+def alg_equiv.subalgebra_equiv_map {R A B : Type*} [comm_semiring R] [semiring A]
+  [semiring B] [algebra R A] [algebra R B] (e : A ≃ₐ[R] B) (S : subalgebra R A) :
+  S ≃ₐ[R] (S.map e.to_alg_hom) :=
+{ commutes' := λ r, by { ext, simp },
+  ..e.to_ring_equiv.subsemiring_equiv_map S.to_subsemiring,
+}
 
+def alg_equiv.intermediate_field_equiv_map {K L M : Type*} [field K] [field L] [field M]
+  [algebra K L] [algebra K M] (e : L ≃ₐ[K] M) (E : intermediate_field K L) :
+  E ≃ₐ[K] (E.map e.to_alg_hom) :=
+e.subalgebra_equiv_map E.to_subalgebra
 
-def intermediate_field_equiv_map {K L L' : Type*} [field K] [field L] [field L']
-[algebra K L] [algebra K L'] (E : intermediate_field K L) (σ : L ≃ₐ[K] L') : 
-E ≃ₐ[K] E.map σ.to_alg_hom :=
-{ to_fun := λ x, ⟨σ x, im_in_map E σ x⟩,
-  inv_fun := λ x, ⟨σ.symm x, inv_im_in_subfield E σ x⟩,
-  left_inv := 
-  begin
-    intro x,
-    simp, 
-  end,
-  right_inv :=
-  begin
-    intro x,
-    simp,
-  end,
-  map_mul' := 
-  begin
-    intros x y,
-    simp,
-    refl, 
-  end,
-  map_add' :=
-  begin
-    intros x y,
-    simp,
-    refl, 
-  end,
-  commutes' :=
-  begin
-    intro x,
-    ext,
-    exact σ.commutes x,
-  end
-   }
-
+-- we've got this, really
 lemma equiv_finite_dimensional {K L L' : Type*} [field K] [field L] [field L']
 [algebra K L] [algebra K L'] (σ : L ≃ₐ[K] L') (h_findim : finite_dimensional K L) :
 finite_dimensional K L' :=
-begin
-   exact linear_equiv.finite_dimensional σ.to_linear_equiv,
-end
+linear_equiv.finite_dimensional σ.to_linear_equiv
 
 lemma im_finite_dimensional {K L : Type*} [field K] [field L] [algebra K L]
 {E : intermediate_field K L} (σ : L ≃ₐ[K] L) (h_findim : finite_dimensional K E): 
 finite_dimensional K (E.map σ.to_alg_hom) :=
-linear_equiv.finite_dimensional (intermediate_field_equiv_map E σ).to_linear_equiv
+linear_equiv.finite_dimensional (σ.intermediate_field_equiv_map E).to_linear_equiv
 
 /-- Given a field extension `L/K`, `finite_exts K L` is the set of
 intermediate field extensions `L/E/K` such that `E/K` is finite -/
@@ -179,169 +145,97 @@ set (intermediate_field K L) :=
 subsets `Gal(L/E)` of `Gal(L/K)`, where `E/K` is finite -/
 def fixed_by_finite (K L : Type*) [field K] [field L] [algebra K L]: set (subgroup (L ≃ₐ[K] L)) :=
 intermediate_field.fixing_subgroup '' (finite_exts K L)
- 
-lemma finite_dimensional_sup {K L: Type*} [field K] [field L] [algebra K L] 
-(E1 E2 : intermediate_field K L) : finite_dimensional K E1 ∧ finite_dimensional K E2 
-→ finite_dimensional K ↥(E1 ⊔ E2) :=
+
+lemma intermediate_field.finite_dimensional_bot (K L : Type*) [field K] 
+  [field L] [algebra K L] : finite_dimensional K (⊥ : intermediate_field K L) :=
+finite_dimensional_of_dim_eq_one intermediate_field.dim_bot 
+
+lemma intermediate_field.fixing_subgroup.bot {K L : Type*} [field K] 
+  [field L] [algebra K L] : 
+  intermediate_field.fixing_subgroup (⊥ : intermediate_field K L) = ⊤ :=
 begin
-  -- will just wait for Browning's version to get into mathlib
-  rintro ⟨h1, h2⟩,
-  resetI,
-  exact intermediate_field.finite_dimensional_sup E1 E2,
+  ext f,
+  refine ⟨λ _, subgroup.mem_top _, λ _, _⟩,
+  rintro ⟨x, hx⟩,
+  rw intermediate_field.mem_bot at hx,
+  rcases hx with ⟨y, rfl⟩,
+  exact f.commutes y,
 end
+
+lemma top_fixed_by_finite {K L : Type*} [field K] [field L] [algebra K L] : 
+  ⊤ ∈ fixed_by_finite K L :=
+⟨⊥, intermediate_field.finite_dimensional_bot K L, intermediate_field.fixing_subgroup.bot⟩
+
+-- we have this, it doesn't need to be here
+lemma finite_dimensional_sup {K L: Type*} [field K] [field L] [algebra K L] 
+  (E1 E2 : intermediate_field K L) (h1 : finite_dimensional K E1)
+  (h2 : finite_dimensional K E2) : finite_dimensional K ↥(E1 ⊔ E2) :=
+by exactI intermediate_field.finite_dimensional_sup E1 E2
 
 lemma mem_fixing_subgroup_iff {K L : Type*} [field K] [field L] [algebra K L] 
 (E : intermediate_field K L) (σ : (L ≃ₐ[K] L)): σ ∈ E.fixing_subgroup ↔  
 ∀ (x : L), x ∈ E → σ x = x :=
---⟨ λ hσ x hx, hσ ⟨x, hx⟩, λ h ⟨x, hx⟩, h x hx⟩
-begin
-  split,
-  {
-    intros hσ x hx,
-    --let y : E := ⟨ x, hx ⟩,
-    exact hσ ⟨x, hx⟩,
-  },
-  {rintro h ⟨x, hx⟩,
-  refine h x hx},
-end
+⟨λ hσ x hx, hσ ⟨x, hx⟩, λ h ⟨x, hx⟩, h x hx⟩
 
-lemma inclusion_reversing {K L : Type*} [field K] [field L] [algebra K L] 
-(E1 E2 : intermediate_field K L) : E1 ≤ E2 → E2.fixing_subgroup ≤ E1.fixing_subgroup :=
+lemma intermediate_field.fixing_subgroup.antimono {K L : Type*} [field K] [field L] [algebra K L] 
+{E1 E2 : intermediate_field K L} (h12 : E1 ≤ E2) : E2.fixing_subgroup ≤ E1.fixing_subgroup :=
 begin
-  intro h12,
-  intros σ hσ,
-  rw mem_fixing_subgroup_iff,
-  intros x hx,
-  specialize h12 hx,
-  let y : E2 := ⟨ x, h12 ⟩,
-  have hy : σ y = y,
-  apply hσ,
-  exact hy,
+  rintro σ hσ ⟨x, hx⟩,
+  exact hσ ⟨x, h12 hx⟩,
 end
 
 def gal_basis (K L : Type*) [field K] [field L] [algebra K L] : filter_basis (L ≃ₐ[K] L) :=
 { sets := subgroup.carrier '' (fixed_by_finite K L),
-  nonempty :=
-  begin
-      apply set.nonempty.image,
-      apply set.nonempty.image,
-      use ⊥,
-      refine finite_dimensional_of_dim_eq_one _,
-      simp,
-  end,
+  nonempty := ⟨⊤, ⊤, top_fixed_by_finite, rfl⟩,
   inter_sets :=
   begin
     rintros X Y ⟨H1, ⟨E1, h_E1, rfl⟩, rfl⟩ ⟨H2, ⟨E2, h_E2, rfl⟩, rfl⟩,
-    let E := E1 ⊔ E2,
-    use (intermediate_field.fixing_subgroup E).carrier,
-    split,
-    {
-      use E.fixing_subgroup,
-      refine ⟨_, rfl⟩,
-      use E,
-      refine ⟨_, rfl⟩,
-      apply finite_dimensional_sup E1 E2,
-      exact ⟨h_E1, h_E2⟩,
-    },
-    {
-      rw set.subset_inter_iff,
-      split,
-      {
-        apply inclusion_reversing,
-        simp [le_Sup],
-      },
-      {
-        apply inclusion_reversing,
-        simp [le_Sup],
-      },
-    },
+    use (intermediate_field.fixing_subgroup (E1 ⊔ E2)).carrier,
+    refine ⟨⟨_, ⟨_, finite_dimensional_sup E1 E2 h_E1 h_E2, rfl⟩, rfl⟩, _⟩,
+    rw set.subset_inter_iff,
+    exact ⟨intermediate_field.fixing_subgroup.antimono le_sup_left,
+      intermediate_field.fixing_subgroup.antimono le_sup_right⟩,
   end
 }
 
 lemma mem_gal_basis_iff (K L : Type*) [field K] [field L] [algebra K L] 
 (U : set (L ≃ₐ[K] L)) : U ∈ gal_basis K L ↔ U ∈ subgroup.carrier '' (fixed_by_finite K L) :=
-begin
-  refl, 
-end
+iff.rfl
 
+-- we have this
 lemma inv_comp {K L : Type*} [field K] [field L] [algebra K L] (σ : L ≃ₐ[K] L) (x : L) :
 σ(σ⁻¹(x)) = x :=
-begin
-  change σ (σ.symm x) = x,
-  simp,
-end
+alg_equiv.apply_symm_apply σ x
 
 def gal_group_basis (K L : Type*) [field K] [field L] [algebra K L] : 
 group_filter_basis (L ≃ₐ[K] L) :=
 { to_filter_basis := gal_basis K L,
-  one' := 
-  begin
-    rintros U ⟨H, hH, rfl⟩,
-    exact H.one_mem',
-  end,
-  mul' := 
-  begin
-    intros U hU,
-    use U,
-    refine ⟨hU, _⟩,
+  one' := λ U ⟨H, hH, h2⟩, h2 ▸ H.one_mem,
+  mul' := λ U hU, ⟨U, hU, begin
     rcases hU with ⟨H, hH, rfl⟩,
     rintros x ⟨a, b, haH, hbH, rfl⟩,
-    exact H.mul_mem' haH hbH,
-  end,
-  inv' := 
-  begin
-    intros U hU,
-    use U,
-    refine ⟨hU, _⟩,
-    dsimp,
+    exact H.mul_mem haH hbH,
+  end⟩,
+  inv' := λ U hU, ⟨U, hU, begin
     rcases hU with ⟨H, hH, rfl⟩,
     exact H.inv_mem',
-  end,
+  end⟩,
   conj' := 
   begin
     rintros σ U ⟨H, ⟨E, hE, rfl⟩, rfl⟩,
     let F : intermediate_field K L := E.map (σ.symm.to_alg_hom),
-    use F.fixing_subgroup.carrier, 
-    split,
-    {
-      rw mem_gal_basis_iff,
-      use F.fixing_subgroup,
-      split,
-      {
-        use F,
-        refine ⟨_, rfl⟩,
-        change finite_dimensional K F,
-        refine im_finite_dimensional σ.symm hE,
-      },
-      refl,
-    },
-    intros g hg,
-    rw set.mem_preimage,
+    refine ⟨F.fixing_subgroup.carrier, ⟨⟨F.fixing_subgroup, ⟨F, 
+      im_finite_dimensional σ.symm hE, rfl⟩, rfl⟩, λ g hg, _⟩⟩,
     change σ * g * σ⁻¹ ∈ E.fixing_subgroup,
     rw mem_fixing_subgroup_iff,
     intros x hx,
     change σ(g(σ⁻¹ x)) = x,
-    have h_in_F : σ⁻¹ x ∈ F,
-    {
-      use x,
-      split,
-      exact hx,
-      dsimp,
-      rw ← alg_equiv.inv_fun_eq_symm,
-      refl,
+    have h_in_F : σ⁻¹ x ∈ F := ⟨x, hx, by {dsimp, rw ← alg_equiv.inv_fun_eq_symm, refl }⟩,
+    have h_g_fix : g (σ⁻¹ x) = (σ⁻¹ x),
+    { rw [subgroup.mem_carrier, mem_fixing_subgroup_iff F g] at hg,
+      exact hg (σ⁻¹ x) h_in_F,
     },
-    {
-      have h_g_fix : g (σ⁻¹ x) = (σ⁻¹ x),
-      {
-        simp at hg,
-        rw mem_fixing_subgroup_iff F g at hg,
-        specialize hg (σ⁻¹ x),
-        exact hg h_in_F,
-      },
-      rw h_g_fix,
-      rw inv_comp,
-    },
+    rw h_g_fix,
+    rw inv_comp,
   end
 }
-
-
