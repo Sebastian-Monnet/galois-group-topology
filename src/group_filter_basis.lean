@@ -67,7 +67,7 @@ end
 --  set.image_subset ⇑σ $ intermediate_field.subset_adjoin K S
 lemma intermediate_field.map_mono {K L M : Type*} [field K] [field L] [field M]
   [algebra K L] [algebra K M] {E1 E2 : intermediate_field K L}
-  (σ : L ≃ₐ[K] L) (h12 : E1 ≤ E2) : 
+  (σ : L ≃ₐ[K] M) (h12 : E1 ≤ E2) : 
 E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom :=
 set.image_subset σ h12 
 
@@ -99,17 +99,27 @@ lemma int_field_map_mono_other {K L : Type*} [field K] [field L] [algebra K L]
 (h12 : E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom): 
 E1 ≤ E2:=
 begin
-  have h_map_map := intermediate_field.map_mono σ.symm h12,
-  rw intermediate_field.map_map at h_map_map,
-  rw intermediate_field.map_map at h_map_map,
-  simp [int_field_map_id] at h_map_map,
-  exact h_map_map,
+  convert intermediate_field.map_mono σ.symm h12,
+  rw intermediate_field.map_map,
+  { simp only [alg_equiv.symm_comp, alg_equiv.to_alg_hom_eq_coe],
+    rw int_field_map_id,
+  },
+  { simp,
+    rw intermediate_field.map_map,
+    simp,
+  --simp only [alg_equiv.symm_comp, alg_equiv.to_alg_hom_eq_coe],
+    rw int_field_map_id,
+ }
+--  library_search,
+--  simp,
+--  library_search,
+
 end
 
 lemma int_field_map_iso {K L : Type*} [field K] [field L] [algebra K L] 
 {E1 E2 : intermediate_field K L} (σ : L ≃ₐ[K] L) :
 E1 ≤ E2 ↔ E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom :=
-⟨int_field_map_mono σ, int_field_map_mono_other σ⟩ 
+⟨intermediate_field.map_mono σ, int_field_map_mono_other σ⟩ 
 
 lemma algebra_map_map_inv {K L : Type*} [field K] [field L] [algebra K L] 
 (E : intermediate_field K L) (σ : L ≃ₐ[K] L) : 
