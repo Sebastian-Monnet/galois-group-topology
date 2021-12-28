@@ -15,47 +15,28 @@ finite_dimensional K (intermediate_field.adjoin K (coe S : set L)) :=
 begin
   refine intermediate_field.induction_on_adjoin_finset (S) (λ (E : intermediate_field K L), 
   finite_dimensional K E) _ _,
-  { 
-    refine finite_dimensional.finite_dimensional_of_finrank _,
-    convert nat.zero_lt_one,
-    rw intermediate_field.finrank_eq_one_iff
+  { refine finite_dimensional.finite_dimensional_of_finrank _,
+    rw intermediate_field.finrank_bot,
+    apply zero_lt_one,
   },
-  { 
-    intros E x hx h, 
+  { intros E x hx h, 
     haveI h2 : finite_dimensional ↥E (↥E)⟮x⟯ :=
       intermediate_field.adjoin.finite_dimensional (
       is_integral_of_is_scalar_tower x (h_int x hx)),
-    exactI (finite_dimensional.trans K ↥E ↥(↥E)⟮x⟯ : finite_dimensional K ↥(↥E)⟮x⟯),
-    } end
+    exactI 
+      (finite_dimensional.trans K ↥E ↥(↥E)⟮x⟯ : finite_dimensional K ↥(↥E)⟮x⟯) } 
+end
 
-lemma intermediate_field.map_map {K L1 L2 L3 : Type*} [field K] [field L1] [algebra K L1]
-[field L2] [algebra K L2] [field L3] [algebra K L3] 
-(E : intermediate_field K L1) (f : L1 →ₐ[K] L2) (g : L2 →ₐ[K] L3) : 
-(E.map f).map g = E.map (g.comp f) :=
+lemma intermediate_field.map_map {K L1 L2 L3 : Type*} [field K] [field L1]
+  [algebra K L1] [field L2] [algebra K L2] [field L3] [algebra K L3] 
+  (E : intermediate_field K L1) (f : L1 →ₐ[K] L2) (g : L2 →ₐ[K] L3) : 
+  (E.map f).map g = E.map (g.comp f) :=
 set_like.coe_injective $ set.image_image _ _ _
 
 lemma map_adjoin_ge_adjoin_map {K L : Type*} [field K] [field L] [algebra K L] 
   (S : set L) {M : Type*} [field M] [algebra K M] (σ : L →ₐ[K] M) : 
 intermediate_field.adjoin K (σ '' S) ≤ (intermediate_field.adjoin K S).map σ :=
-intermediate_field.gi.gc.l_le $
-  set.image_subset ⇑σ $ intermediate_field.subset_adjoin K S
-
-lemma foo2 {K L : Type*} [field K] [field L] [algebra K L] 
-  (S : set L) {M : Type*} [field M] [algebra K M] (σ : L →ₐ[K] M) : 
-  ∀ (F : intermediate_field K M),
-  σ '' S ⊆ F → (intermediate_field.adjoin K S).map σ ≤ F :=
-begin
-  have giM := @intermediate_field.gi K _ M _ _, -- don't need `let`!
-  intros F hSF,
-  rw intermediate_field.adjoin_map,
-  exact giM.gc.l_le hSF,
-end
-
-lemma foo {K L : Type*} [field K] [field L] [algebra K L] 
-  (S : set L) {M : Type*} [field M] [algebra K M] (σ : L →ₐ[K] M) : 
-(intermediate_field.adjoin K S).map σ ≤  
-intermediate_field.adjoin K (σ '' S) :=
-foo2 S σ _ (intermediate_field.subset_adjoin K (⇑σ '' S))
+le_of_eq (intermediate_field.adjoin_map K S σ).symm
 
 lemma intermediate_field.map_mono {K L M : Type*} [field K] [field L] [field M]
   [algebra K L] [algebra K M] {E1 E2 : intermediate_field K L}
@@ -63,103 +44,68 @@ lemma intermediate_field.map_mono {K L M : Type*} [field K] [field L] [field M]
 E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom :=
 set.image_subset σ h12 
 
-lemma int_field_map_id {K L : Type*} [field K] [field L] [algebra K L] 
+lemma intermediate_field.map_id {K L : Type*} [field K] [field L] [algebra K L] 
 {E : intermediate_field K L} : 
 E.map (alg_hom.id K L) = E :=
-set_like.coe_injective $ set.image_id (E : set L)
+set_like.coe_injective $ set.image_id _
 
+-- not necessary; we have equiv.image_subset
 lemma int_field_map_mono_other {K L : Type*} [field K] [field L] [algebra K L] 
 {E1 E2 : intermediate_field K L} {M : Type*} [field M] [algebra K M]
   (σ : L ≃ₐ[K] M) 
 (h12 : E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom): 
 E1 ≤ E2:=
-begin
-  convert intermediate_field.map_mono σ.symm h12;
-  rw intermediate_field.map_map;
-  simp only [alg_equiv.symm_comp, 
-    alg_equiv.to_alg_hom_eq_coe, int_field_map_id],
-end
+(σ.to_equiv.image_subset E1 E2).1 h12
 
+-- I switched the order -- more complicated thing on the left of an ↔
+-- you don't use this anywhere anyway
 lemma int_field_map_iso {K L : Type*} [field K] [field L] [algebra K L] 
 {E1 E2 : intermediate_field K L} (σ : L ≃ₐ[K] L) :
-E1 ≤ E2 ↔ E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom :=
-⟨intermediate_field.map_mono σ, int_field_map_mono_other σ⟩ 
+E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom ↔ E1 ≤ E2 :=
+σ.to_equiv.image_subset E1 E2
 
+-- you don't use this
 lemma algebra_map_map_inv {K L : Type*} [field K] [field L] [algebra K L] 
 (E : intermediate_field K L) (σ : L ≃ₐ[K] L) : 
 (E.to_subalgebra.map σ.to_alg_hom).map σ.symm.to_alg_hom = E.to_subalgebra :=
-begin
-  rw subalgebra.map_map E.to_subalgebra σ.symm.to_alg_hom σ.to_alg_hom,
-  simp,
-end
+by simp [subalgebra.map_map]
 
+-- special case of intermediate_field.adjoin_map
 lemma adjoin_map_le_map_adjoin {K L : Type*} [field K] [field L] [algebra K L] (S : set L) 
 (σ : L ≃ₐ[K] L) : 
 (intermediate_field.adjoin K S).map σ.to_alg_hom ≤ 
-intermediate_field.adjoin K (σ.to_fun '' S) :=
-begin
-  rw intermediate_field.adjoin_map,
-  apply le_of_eq _,
-  refl,
-end
+intermediate_field.adjoin K (σ '' S) :=
+le_of_eq (intermediate_field.adjoin_map K S σ)
 
-lemma adjoin_map_eq_map_adjoin {K L : Type*} [field K] [field L] [algebra K L] (S : finset L) 
+-- this is adjoin_map again
+lemma adjoin_map_eq_map_adjoin {K L : Type*} [field K] [field L] [algebra K L] (S : set L) 
 (σ : L ≃ₐ[K] L) : 
-(intermediate_field.adjoin K ↑S).map σ.to_alg_hom =
-intermediate_field.adjoin K (σ.to_fun '' ↑S) :=
-begin
-  apply le_antisymm,
-  exact adjoin_map_le_map_adjoin S σ,
-  apply intermediate_field.gi.gc.l_le,
-  intros y hy,
-  cases hy with x hx,
-  cases hx with hx hxy,
-  use x,
-  split,
-  dsimp,
-  apply intermediate_field.subset_adjoin,
-  exact hx,
-  exact hxy,
-end
+(intermediate_field.adjoin K S).map σ.to_alg_hom =
+intermediate_field.adjoin K (σ.to_fun '' S) :=
+intermediate_field.adjoin_map K S σ
 
-
-
+-- more complex thing on the left. You never use this and we have it already.
 lemma eq_subalg_iff_eq_submodule {R : Type*} {A : Type*} [comm_semiring R] [semiring A] 
 [algebra R A] (E1 E2 : subalgebra R A):
-E1 = E2 ↔ E1.to_submodule = E2.to_submodule :=
-begin
-  exact subalgebra.to_submodule_inj.symm,
-end
+E1.to_submodule = E2.to_submodule ↔ E1 = E2 := 
+subalgebra.to_submodule_inj
 
-
+-- you don't use this either
 lemma span_subalg_of_span_submod {R A : Type*} [comm_semiring R] [semiring A] 
 [algebra R A] (s : set A) (h : submodule.span R s = ⊤) : 
 algebra.adjoin R s = ⊤ :=
 begin
-  rw subalgebra.to_submodule_inj.symm,
-  rw algebra.adjoin_eq_span,
-  have h' : submodule.span R s ≤ submodule.span R (submonoid.closure s),
-  {
-    have h'' : s ≤ submonoid.closure s,
-    {
-      apply submonoid.subset_closure,
-    },
-    exact (submodule.gi R A).gc.monotone_l h'',
-  },
-  rw h at h',
-  simp,
-  exact eq_top_iff.mpr h',
+  refine subalgebra.to_submodule_injective (_ : _ = ⊤),
+  rw [← top_le_iff, ← h],
+  exact algebra.span_le_adjoin R s,
 end
 
 
 lemma im_in_map {K L L' : Type*} [field K] [field L] [field L']
 [algebra K L] [algebra K L'] (E : intermediate_field K L) (σ : L ≃ₐ[K] L') 
 (x : E) :
-σ x ∈ E.map σ.to_alg_hom :=
-begin
-  use x,
-  simp,
-end
+σ x ∈ E.map σ.to_alg_hom := 
+⟨x, x.2, rfl⟩
 
 lemma inv_im_in_subfield {K L L' : Type*} [field K] [field L] [field L']
 [algebra K L] [algebra K L'] (E : intermediate_field K L) (σ : L ≃ₐ[K] L') 
