@@ -477,4 +477,14 @@ group_filter_basis (L ≃ₐ[K] L) :=
   end
 }
 
+@[instance]
+def krull_topology (K L : Type*) [field K] [field L] [algebra K L] :
+topological_space (L ≃ₐ[K] L) :=
+group_filter_basis.topology (gal_group_basis K L)
+
+
+def krull_topological_group (K L : Type*) [field K] [field L] [algebra K L] :
+topological_group (L ≃ₐ[K] L) :=
+group_filter_basis.is_topological_group (gal_group_basis K L)
+
 
