@@ -299,12 +299,13 @@ begin
       exact h_open,
     },
     {
-      use g * x,
-      exact ⟨hgxU, by simp⟩,
+      exact ⟨g * x, hgxU, by simp⟩,
     },
   },
 end
 
+example (G : Type*) [group G] (x y z : G):
+x⁻¹ * y = z ↔ y = x * z := by refine inv_mul_eq_iff_eq_mul
 
 lemma sigma_is_limit {K L : Type*} [field K] [field L] [algebra K L] 
 (f : ultrafilter (L ≃ₐ[K] L)) (h_le_princ : ↑f ≤ filter.principal 
@@ -317,9 +318,7 @@ begin
   {
     have h_sigma_1 : σ = σ * 1 := by simp,
     change A ∈ nhds σ at hA,
-    rw h_sigma_1 at hA,
-    rw ← top_group_map_nhds_eq σ 1 at hA,
-    rw filter.mem_map at hA,
+    rw [h_sigma_1, ← top_group_map_nhds_eq σ 1, filter.mem_map] at hA,
     have h : left_coset σ⁻¹ A = (λ y, σ * y)⁻¹' A,
     {
       ext,
@@ -331,8 +330,7 @@ begin
       {
         intro hx,
         rw set.mem_preimage at hx,
-        rw mem_left_coset_iff,
-        rw inv_inv,
+        rw [mem_left_coset_iff, inv_inv],
         exact hx,
       },
     },
@@ -340,15 +338,37 @@ begin
     exact hA,
   },
   have hA_coset_cont_H : ∃ (E : intermediate_field K L), finite_dimensional K E 
-  ∧ E.fixing_subgroup.carrier ⊆ left_coset σ⁻¹ A := sorry,
-  cases hA_coset_cont_H with E hE,
-  cases hE with h_findim hEA,
-  have hEA' : left_coset σ E.fixing_subgroup ⊆ A := sorry,
+  ∧ E.fixing_subgroup.carrier ⊆ left_coset σ⁻¹ A,
+  {
+    rw nhds_one_eq at hA_coset,
+    rw filter_basis.mem_filter_iff at hA_coset,
+    rcases hA_coset with ⟨H_set, hH, hA_coset⟩,
+    change H_set ∈ gal_basis K L at hH,
+    rw mem_gal_basis_iff at hH,
+    rcases hH with ⟨H, ⟨E, hE, hHE⟩, hHH_set⟩,
+    refine ⟨E, hE, _⟩,
+    rw [hHE, hHH_set],
+    exact hA_coset,    
+  },
+  rcases hA_coset_cont_H with ⟨E, h_findim, hEA⟩,
+  have hEA' : left_coset σ E.fixing_subgroup ⊆ A,
+  {
+    intros x hx,
+    rcases hx with ⟨y, hy, hyx⟩,
+    change σ * y = x at hyx,
+    specialize hEA hy,
+    rcases hEA with ⟨a, ha, hay⟩,
+    change σ⁻¹ * a = y at hay,
+    rw inv_mul_eq_iff_eq_mul at hay,
+    rw [← hyx, ← hay],
+    exact ha,
+  },
   let p : (L ≃ₐ[K] L) → (E →ₐ[K] L) := λ σ, (σ.to_alg_hom.comp E.val),
-  have h_principal : f.map p = pure (p σ) := sorry,
+  have h_principal : f.map p = pure (p σ),
+  {
+    sorry,
+  },
 
-  -- here the point is that the left-coset is precisely the preimage under 
-  -- p of {σ|_E}
   have h_small_set : left_coset σ E.fixing_subgroup ∈ f,
   {
     have h : {p σ} ∈ (pure (p σ) : ultrafilter (E →ₐ[K] L)) := set.mem_singleton (p σ),
