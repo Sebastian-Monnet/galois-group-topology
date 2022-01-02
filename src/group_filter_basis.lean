@@ -7,25 +7,6 @@ open_locale classical
 noncomputable def force_noncomputable {α : Sort*} (a : α) : α :=
   function.const _ a (classical.choice ⟨a⟩)
 
--- probably delete
-lemma adj_finset_finite_dimensional {K L : Type*} [field K] [field L] [algebra K L]
-(S : finset L)  
-(h_int : ∀ (x : L), x ∈ S → is_integral K x) : 
-finite_dimensional K (intermediate_field.adjoin K (coe S : set L)) :=
-begin
-  refine intermediate_field.induction_on_adjoin_finset (S) (λ (E : intermediate_field K L), 
-  finite_dimensional K E) _ _,
-  { refine finite_dimensional.finite_dimensional_of_finrank _,
-    rw intermediate_field.finrank_bot,
-    apply zero_lt_one,
-  },
-  { intros E x hx h, 
-    haveI h2 : finite_dimensional ↥E (↥E)⟮x⟯ :=
-      intermediate_field.adjoin.finite_dimensional (
-      is_integral_of_is_scalar_tower x (h_int x hx)),
-    exactI 
-      (finite_dimensional.trans K ↥E ↥(↥E)⟮x⟯ : finite_dimensional K ↥(↥E)⟮x⟯) } 
-end
 
 lemma intermediate_field.map_map {K L1 L2 L3 : Type*} [field K] [field L1]
   [algebra K L1] [field L2] [algebra K L2] [field L3] [algebra K L3] 
@@ -49,13 +30,7 @@ lemma intermediate_field.map_id {K L : Type*} [field K] [field L] [algebra K L]
 E.map (alg_hom.id K L) = E :=
 set_like.coe_injective $ set.image_id _
 
--- not necessary; we have equiv.image_subset
-lemma int_field_map_mono_other {K L : Type*} [field K] [field L] [algebra K L] 
-{E1 E2 : intermediate_field K L} {M : Type*} [field M] [algebra K M]
-  (σ : L ≃ₐ[K] M) 
-(h12 : E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom): 
-E1 ≤ E2:=
-(σ.to_equiv.image_subset E1 E2).1 h12
+
 
 -- I switched the order -- more complicated thing on the left of an ↔
 -- you don't use this anywhere anyway
