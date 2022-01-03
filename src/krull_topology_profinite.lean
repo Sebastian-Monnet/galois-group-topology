@@ -231,6 +231,12 @@ begin
   },
 end
 
+lemma ultrafilter.map_pure {X Y : Type*} (x : X) (m : X → Y):
+(pure x : ultrafilter X).map m = pure (m x)  :=
+begin 
+  refl,
+end
+
 lemma alg_hom_of_finite_dimensional_of_ultrafilter_functor {K L : Type*} [field K] [field L] [algebra K L]
   {E : intermediate_field K L} (hE : finite_dimensional K E)
   (f : ultrafilter (L ≃ₐ[K] L)) {F : intermediate_field K L} (hF : finite_dimensional K F) (hEF : E ≤ F)
@@ -249,12 +255,26 @@ lemma alg_hom_of_finite_dimensional_of_ultrafilter_functor {K L : Type*} [field 
     set res : (F →ₐ[K] L) → (E →ₐ[K] L) := (λ ϕ, ϕ.comp (intermediate_field.inclusion hEF))
     with res_def,
     have h_pF_pE_res : res ∘ p_F = p_E := rfl,
-    have h_maps_commute : (f.map p_F).map res = f.map p_E,
+    have h_maps_commute : ((f.map p_F).map res : filter (E →ₐ[K] L)) = f.map p_E,
     {
       rw ultrafilter.map_map,
       rw h_pF_pE_res,
     },
-    
+    have hEf  := alg_hom_of_finite_dimensional_of_ultrafilter_spec hE f,
+    rw [← σ_E_def, ← p_E_def] at hEf,
+    have hFf := alg_hom_of_finite_dimensional_of_ultrafilter_spec hF f,
+    rw [← σ_F_def, ← p_F_def] at hFf,
+    have hFf' : (ultrafilter.map p_F f) = (pure σ_F : ultrafilter (F →ₐ[K] L)),
+    {
+      exact ultrafilter.coe_inj.mp hFf,
+    },
+    rw hEf at h_maps_commute,
+    rw hFf' at h_maps_commute,
+    rw ultrafilter.map_pure at h_maps_commute,
+    have h := filter.pure_injective h_maps_commute,
+    rw res_def at h,
+    dsimp at h,
+    exact h.symm,
   end
 
 
