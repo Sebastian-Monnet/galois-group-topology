@@ -23,11 +23,37 @@ begin
   exact h h_eq,
 end
 
+
+lemma nonempty_interior_of_open_subset {X : Type*} [topological_space X] {S U : set X}
+(hUS : U ⊆ S) (hU_open : is_open U) (hU_nonempty : U.nonempty):
+(interior S).nonempty :=
+begin
+  cases hU_nonempty with x hxU,
+  exact ⟨x, (interior_maximal hUS hU_open) hxU⟩,
+end
+
+lemma open_subgroup_of_nonempty_interior {G : Type*} [group G] [topological_space G] 
+[topological_group G] {H : subgroup G} (h_nonempty_int : (interior H.carrier).nonempty) :
+is_open H.carrier :=
+begin
+  
+end
+
 lemma fixing_subgroup_is_open {K L : Type*} [field K] [field L] [algebra K L] 
 {E : intermediate_field K L} (h_findim : finite_dimensional K E) :
 is_open (E.fixing_subgroup : set (L ≃ₐ[K] L)) :=
 begin
-  sorry, 
+  have h_basis : E.fixing_subgroup.carrier ∈ (gal_group_basis K L) :=
+   ⟨E.fixing_subgroup, ⟨E, h_findim, rfl⟩, rfl⟩,
+  have h_nhd := group_filter_basis.mem_nhds_one 
+  (gal_group_basis K L) h_basis,
+  rw mem_nhds_iff at h_nhd,
+  cases h_nhd with U h_nhd,
+  cases h_nhd with hU_le h_nhd,
+  cases h_nhd with hU_open h1U,
+  have h_nonempty_int : (interior E.fixing_subgroup.carrier).nonempty := 
+  nonempty_interior_of_open_subset hU_le hU_open ⟨1, h1U⟩,
+  
 end
 
 lemma coset_open {G : Type*} [group G] [topological_space G] [topological_group G]
@@ -213,6 +239,31 @@ lemma inclusion_eq_identity {K L : Type*} [field K] [field L] [algebra K L]
     refl,
   end
 
+lemma inclusion_commutes_with_val {K L : Type*} [field K] [field L] [algebra K L]
+  {E F : intermediate_field K L} (hEF : E ≤ F) :
+  F.val ∘ (intermediate_field.inclusion hEF) = E.val :=
+begin
+  refl,
+end
+
+lemma val_inj {K L : Type*} [field K] [field L] [algebra K L]
+  {E : intermediate_field K L} :
+  function.injective E.val :=
+begin
+  intros x y hxy,
+  exact subtype.ext hxy,
+end
+
+lemma inclusion_commutes_with_mk {K L : Type*} [field K] [field L] [algebra K L] {E F : intermediate_field K L}
+(hEF : E ≤ F) {x : L} (hx : x ∈ E) :
+(intermediate_field.inclusion hEF) ⟨x, hx⟩ = ⟨x, hEF hx⟩ :=
+begin
+  apply val_inj,
+  rw inclusion_eq_identity,
+  simp,
+end
+
+
 
 lemma ultrafilter.map_map {X Y Z: Type*} (m : X → Y) (n : Y → Z) (f : ultrafilter X) :
 (f.map m).map n = f.map(n ∘ m) :=
@@ -276,6 +327,38 @@ lemma alg_hom_of_finite_dimensional_of_ultrafilter_functor {K L : Type*} [field 
     dsimp at h,
     exact h.symm,
   end
+
+noncomputable def function_of_ultrafilter {K L : Type*} [field K] [field L] [algebra K L] 
+(h_int : algebra.is_integral K L) (f : ultrafilter (L ≃ₐ[K] L)) :
+(L → L) :=
+λ x, (alg_hom_of_finite_dimensional_of_ultrafilter 
+(intermediate_field.adjoin.finite_dimensional (h_int x)) f) 
+(⟨x, intermediate_field.mem_adjoin_simple_self K x⟩)
+
+
+lemma function_of_ultrafilter_spec {K L : Type*} [field K] [field L] [algebra K L] 
+(h_int : algebra.is_integral K L) (f : ultrafilter (L ≃ₐ[K] L)) {E : intermediate_field K L}
+(hE : finite_dimensional K E) (x : E) :
+(function_of_ultrafilter h_int f) x = (alg_hom_of_finite_dimensional_of_ultrafilter hE f) x :=
+begin
+   have h_le : intermediate_field.adjoin K {(x : L)} ≤ E,
+   {
+     apply intermediate_field.gc.l_le,
+     simp only [set_like.coe_mem, set_like.mem_coe, set.singleton_subset_iff, set.le_eq_subset],
+   },
+   have h_Kx : finite_dimensional K (intermediate_field.adjoin K {(x : L)}) :=
+   intermediate_field.adjoin.finite_dimensional (h_int x),
+   let h_functor := alg_hom_of_finite_dimensional_of_ultrafilter_functor h_Kx f hE h_le,
+   have h : (function_of_ultrafilter h_int f) x = 
+   (alg_hom_of_finite_dimensional_of_ultrafilter h_Kx f) ⟨x, 
+   intermediate_field.mem_adjoin_simple_self K x⟩ := rfl,
+   rw [h, h_functor],
+   let x_in_Kx : intermediate_field.adjoin K {(x : L)} := ⟨(x : L), 
+   intermediate_field.mem_adjoin_simple_self K (x : L)⟩,
+   have h' : (intermediate_field.inclusion h_le) x_in_Kx = x := by
+     simp [inclusion_commutes_with_mk h_le (intermediate_field.mem_adjoin_simple_self K (x : L))],
+   simp [h'],
+end
 
 
 def res {K L : Type*} [field K] [field L] [algebra K L] (E : intermediate_field K L):
