@@ -32,6 +32,30 @@ begin
   exact ⟨x, (interior_maximal hUS hU_open) hxU⟩,
 end
 
+lemma inv_open_map {G : Type*} [group G] [topological_space G] 
+[topological_group G] :
+is_open_map (λ (x : G), x⁻¹) :=
+begin
+  intros U hU,
+  let i := λ (x : G), x⁻¹,
+  have h_cont : continuous i := continuous_inv,
+  have h_self_inv : i '' U = i⁻¹' U,
+  {
+    ext,
+    refine ⟨_, λ hx, ⟨i x, hx, inv_inv x⟩⟩,
+    {
+      rintro ⟨y, hy, hyx⟩,
+      rw ← hyx,
+      change (y⁻¹)⁻¹ ∈ U,
+      rw inv_inv y,
+      exact hy,
+    },
+  },
+  rw h_self_inv,
+  rw continuous_def at h_cont,
+  exact h_cont U hU,
+end
+
 def subgroup_of_interior_of_subgroup {G : Type*} [group G] [topological_space G] 
 [topological_group G] {H : subgroup G} (h1_int : (1 : G) ∈ interior H.carrier) :
 subgroup G :=
@@ -46,10 +70,7 @@ subgroup G :=
     let m : G → G := λ x, a * x,
     have h_sub_H : m '' interior(H.carrier) ⊆ H.carrier,
     {
-      intros y hy,
-      cases hy with p hp,
-      cases hp with hp hapy,
-      change a * p = y at hapy,
+      rintros y ⟨p, hp, hapy⟩,
       rw ← hapy,
       exact H.mul_mem' (interior_subset ha) (interior_subset hp),
     },
@@ -61,31 +82,29 @@ subgroup G :=
     have h : m '' (interior H.carrier) ⊆ interior H.carrier,
     {
       rw subset_interior_iff_subset_of_open,
-      {
-        exact h_sub_H,
-      },
-      {
-        exact h_open,
-      },
+      exact h_sub_H,  
+      exact h_open,
     },
-    apply h,
-    use b,
-    split,
-    {
-      exact hb,
-    },
-    {
-      refl,
-    },
+    exact h ⟨b, hb, rfl⟩,
   end,
   inv_mem' :=
   begin 
-    intros x hx,
     let i : G → G := λ x, x⁻¹,
+    have h_open_map : is_open_map i := inv_open_map,
     have h_int_open : is_open (interior H.carrier) := is_open_interior,
-    have h_open : is_open (i '' (interior H.carrier)),
+    have h_open : is_open (i '' (interior H.carrier)) := 
+    h_open_map (interior H.carrier) h_int_open,
+    have h_le : i '' (interior H.carrier) ⊆ H.carrier,
+    {
+      rintros a ⟨x, hx⟩,
+      rw ← hx.2,
+      exact H.inv_mem' (interior_subset hx.1),
+    },
+    exact λ x hx, (interior_maximal h_le h_open) ⟨x, hx, rfl⟩,
   end
   }
+
+
 
 lemma subgroup_of_interior_of_subgroup_open {G : Type*} [group G] [topological_space G] 
 [topological_group G] {H : subgroup G} (h1_int : (1 : G) ∈ interior H.carrier) :
@@ -101,33 +120,19 @@ is_open H2.carrier :=
 begin 
   have h_eq_int : interior H2.carrier = H2.carrier,
   {
-    apply le_antisymm,
+    refine le_antisymm interior_subset _,
+    intros x hx,
+    use left_coset x H1,
+    refine ⟨_,  ⟨1, H1.one_mem', by simp⟩⟩,
+    split,
     {
-      exact interior_subset,
+      apply is_open_map_mul_left,
+      exact h_open,
     },
     {
-      intros x hx,
-      use left_coset x H1,
-      split,
-      {
-        split,
-        {
-          apply is_open_map_mul_left,
-          exact h_open,
-        },
-        {
-          intros a ha,
-          cases ha with y ha,
-          cases ha with hy haxy,
-          change x * y = a at haxy,
-          rw ← haxy,
-          exact H2.mul_mem' hx (h_le hy),
-        },
-      },
-      {
-        use 1,
-        exact ⟨H1.one_mem', by simp⟩,
-      },
+      rintros a ⟨y, hy, haxy⟩,
+      rw ← haxy,
+      exact H2.mul_mem' hx (h_le hy),
     },
   },
   rw ← h_eq_int,
@@ -149,20 +154,15 @@ begin
    ⟨E.fixing_subgroup, ⟨E, h_findim, rfl⟩, rfl⟩,
   have h_nhd := group_filter_basis.mem_nhds_one (gal_group_basis K L) h_basis,
   rw mem_nhds_iff at h_nhd,
-  cases h_nhd with U h_nhd,
-  cases h_nhd with hU_le h_nhd,
-  cases h_nhd with hU_open h1U,
-  have h_1_int : (1 : (L ≃ₐ[K] L)) ∈ interior E.fixing_subgroup.carrier := 
-  ⟨U, ⟨hU_open, hU_le⟩, h1U⟩,
-  exact open_subgroup_of_nonempty_interior h_1_int,
+  rcases h_nhd with ⟨U, hU_le, hU_open, h1U⟩,
+  exact open_subgroup_of_nonempty_interior ⟨U, ⟨hU_open, hU_le⟩, h1U⟩,
 end
 
 lemma coset_open {G : Type*} [group G] [topological_space G] [topological_group G]
 {U : set G} (x : G) (h : is_open U) :
 is_open (left_coset x U) :=
 begin 
-  let f := homeomorph.mul_left x,
-  have h' : left_coset x U = f '' U := rfl,
+  have h' : left_coset x U = (homeomorph.mul_left x) '' U := rfl,
   rw h',
   rw homeomorph.is_open_image,
   exact h,
@@ -176,11 +176,7 @@ t2_space (L ≃ₐ[K] L)  :=
 begin 
   intros f g hfg,
   let φ := f⁻¹ * g,
-  have h : ∃ (x : L), f x ≠ g x,
-  {
-    exact diff_equivs_have_diff_values hfg,
-  },
-  cases h with x hx,
+  cases (diff_equivs_have_diff_values hfg) with x hx,
   have hφx : φ x ≠ x,
   {
     change f⁻¹(g x) ≠ x,
@@ -461,6 +457,20 @@ begin
    simp [h'],
 end
 
+noncomputable def alg_hom_of_ultrafilter {K L : Type*} [field K] [field L] [algebra K L] 
+(h_int : algebra.is_integral K L) (f : ultrafilter (L ≃ₐ[K] L)) :
+(L →ₐ[K] L) :=
+sorry
+
+lemma alg_hom_of_ultrafilter_bijection {K L : Type*} [field K] [field L] [algebra K L] 
+(h_int : algebra.is_integral K L) (f : ultrafilter (L ≃ₐ[K] L)) :
+function.bijective (alg_hom_of_ultrafilter h_int f) :=
+sorry
+
+noncomputable def equiv_of_ultrafilter {K L : Type*} [field K] [field L] [algebra K L] 
+(h_int : algebra.is_integral K L) (f : ultrafilter (L ≃ₐ[K] L)) :
+(L ≃ₐ[K] L) :=
+alg_equiv.of_bijective (alg_hom_of_ultrafilter h_int f) (alg_hom_of_ultrafilter_bijection h_int f)
 
 def res {K L : Type*} [field K] [field L] [algebra K L] (E : intermediate_field K L):
 (L ≃ₐ[K] L) → (E →ₐ[K] L) :=
