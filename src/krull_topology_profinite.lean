@@ -32,12 +32,114 @@ begin
   exact ⟨x, (interior_maximal hUS hU_open) hxU⟩,
 end
 
-lemma open_subgroup_of_nonempty_interior {G : Type*} [group G] [topological_space G] 
-[topological_group G] {H : subgroup G} (h_nonempty_int : (interior H.carrier).nonempty) :
-is_open H.carrier :=
+def subgroup_of_interior_of_subgroup {G : Type*} [group G] [topological_space G] 
+[topological_group G] {H : subgroup G} (h1_int : (1 : G) ∈ interior H.carrier) :
+subgroup G :=
+{ carrier := interior H.carrier,
+  one_mem' := 
+  begin 
+    exact h1_int,
+  end,
+  mul_mem' :=
+  begin 
+    intros a b ha hb,
+    let m : G → G := λ x, a * x,
+    have h_sub_H : m '' interior(H.carrier) ⊆ H.carrier,
+    {
+      intros y hy,
+      cases hy with p hp,
+      cases hp with hp hapy,
+      change a * p = y at hapy,
+      rw ← hapy,
+      exact H.mul_mem' (interior_subset ha) (interior_subset hp),
+    },
+    have h_open : is_open (m '' interior(H.carrier)),
+    {
+      apply is_open_map_mul_left,
+      exact is_open_interior,
+    },
+    have h : m '' (interior H.carrier) ⊆ interior H.carrier,
+    {
+      rw subset_interior_iff_subset_of_open,
+      {
+        exact h_sub_H,
+      },
+      {
+        exact h_open,
+      },
+    },
+    apply h,
+    use b,
+    split,
+    {
+      exact hb,
+    },
+    {
+      refl,
+    },
+  end,
+  inv_mem' :=
+  begin 
+    intros x hx,
+    let i : G → G := λ x, x⁻¹,
+    have h_int_open : is_open (interior H.carrier) := is_open_interior,
+    have h_open : is_open (i '' (interior H.carrier)),
+  end
+  }
+
+lemma subgroup_of_interior_of_subgroup_open {G : Type*} [group G] [topological_space G] 
+[topological_group G] {H : subgroup G} (h1_int : (1 : G) ∈ interior H.carrier) :
+is_open (subgroup_of_interior_of_subgroup h1_int).carrier :=
 begin
-  
+  change is_open (interior H.carrier),
+  exact is_open_interior,
 end
+
+lemma open_subgroup_of_open_subgroup {G : Type*} [group G] [topological_space G] 
+[topological_group G] (H1 H2 : subgroup G) (h_le : H1 ≤ H2) (h_open : is_open H1.carrier) :
+is_open H2.carrier :=
+begin 
+  have h_eq_int : interior H2.carrier = H2.carrier,
+  {
+    apply le_antisymm,
+    {
+      exact interior_subset,
+    },
+    {
+      intros x hx,
+      use left_coset x H1,
+      split,
+      {
+        split,
+        {
+          apply is_open_map_mul_left,
+          exact h_open,
+        },
+        {
+          intros a ha,
+          cases ha with y ha,
+          cases ha with hy haxy,
+          change x * y = a at haxy,
+          rw ← haxy,
+          exact H2.mul_mem' hx (h_le hy),
+        },
+      },
+      {
+        use 1,
+        exact ⟨H1.one_mem', by simp⟩,
+      },
+    },
+  },
+  rw ← h_eq_int,
+  exact is_open_interior,
+end
+
+lemma open_subgroup_of_nonempty_interior {G : Type*} [group G] [topological_space G] 
+[topological_group G] {H : subgroup G} (h_1_int : (1 : G) ∈ interior H.carrier) :
+is_open H.carrier :=
+open_subgroup_of_open_subgroup (subgroup_of_interior_of_subgroup h_1_int)
+  H interior_subset (subgroup_of_interior_of_subgroup_open h_1_int)
+
 
 lemma fixing_subgroup_is_open {K L : Type*} [field K] [field L] [algebra K L] 
 {E : intermediate_field K L} (h_findim : finite_dimensional K E) :
@@ -45,15 +147,14 @@ is_open (E.fixing_subgroup : set (L ≃ₐ[K] L)) :=
 begin
   have h_basis : E.fixing_subgroup.carrier ∈ (gal_group_basis K L) :=
    ⟨E.fixing_subgroup, ⟨E, h_findim, rfl⟩, rfl⟩,
-  have h_nhd := group_filter_basis.mem_nhds_one 
-  (gal_group_basis K L) h_basis,
+  have h_nhd := group_filter_basis.mem_nhds_one (gal_group_basis K L) h_basis,
   rw mem_nhds_iff at h_nhd,
   cases h_nhd with U h_nhd,
   cases h_nhd with hU_le h_nhd,
   cases h_nhd with hU_open h1U,
-  have h_nonempty_int : (interior E.fixing_subgroup.carrier).nonempty := 
-  nonempty_interior_of_open_subset hU_le hU_open ⟨1, h1U⟩,
-  
+  have h_1_int : (1 : (L ≃ₐ[K] L)) ∈ interior E.fixing_subgroup.carrier := 
+  ⟨U, ⟨hU_open, hU_le⟩, h1U⟩,
+  exact open_subgroup_of_nonempty_interior h_1_int,
 end
 
 lemma coset_open {G : Type*} [group G] [topological_space G] [topological_group G]
