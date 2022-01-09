@@ -81,7 +81,7 @@ end
 noncomputable def force_noncomputable {α : Sort*} (a : α) : α :=
 function.const _ a (classical.choice ⟨a⟩)
 
-noncomputable def adj_roots {K L : Type} [field K] [field L] [algebra K L]
+noncomputable def adj_roots {K L : Type*} [field K] [field L] [algebra K L]
 {E : intermediate_field K L} (h_findim : finite_dimensional K E) :
 intermediate_field K L :=
 force_noncomputable
@@ -446,3 +446,4 @@ begin
   exact h_root_of_prod,
   exact polynomial.map_monic_ne_zero (prod_min_polys_monic h_findim),
 end
+

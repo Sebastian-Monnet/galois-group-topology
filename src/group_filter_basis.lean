@@ -1,23 +1,10 @@
 import field_theory.galois
 import topology.algebra.filter_basis
+import normal_closure
 
 open_locale classical
 
 
-noncomputable def force_noncomputable {α : Sort*} (a : α) : α :=
-  function.const _ a (classical.choice ⟨a⟩)
-
-
-lemma intermediate_field.map_map {K L1 L2 L3 : Type*} [field K] [field L1]
-  [algebra K L1] [field L2] [algebra K L2] [field L3] [algebra K L3] 
-  (E : intermediate_field K L1) (f : L1 →ₐ[K] L2) (g : L2 →ₐ[K] L3) : 
-  (E.map f).map g = E.map (g.comp f) :=
-set_like.coe_injective $ set.image_image _ _ _
-
-lemma map_adjoin_ge_adjoin_map {K L : Type*} [field K] [field L] [algebra K L] 
-  (S : set L) {M : Type*} [field M] [algebra K M] (σ : L →ₐ[K] M) : 
-intermediate_field.adjoin K (σ '' S) ≤ (intermediate_field.adjoin K S).map σ :=
-le_of_eq (intermediate_field.adjoin_map K S σ).symm
 
 lemma intermediate_field.map_mono {K L M : Type*} [field K] [field L] [field M]
   [algebra K L] [algebra K M] {E1 E2 : intermediate_field K L}
@@ -76,28 +63,27 @@ begin
 end
 
 -- this and the next few lemmas would make some nice PR's
-@[simps] def ring_equiv.subsemiring_equiv_map {A B : Type*} [non_assoc_semiring A]
-  [non_assoc_semiring B] (e : A ≃+* B) (R : subsemiring A) :
-  R ≃+* R.map e.to_ring_hom :=
-{ ..e.to_add_equiv.add_submonoid_equiv_map R.to_add_submonoid,
-  ..e.to_mul_equiv.submonoid_equiv_map R.to_submonoid}
+@[simps] def ring_equiv.subsemiring_map {R S : Type*} [non_assoc_semiring R] [non_assoc_semiring S] 
+ (e : R ≃+* S) (s : subsemiring R) :
+  s ≃+* s.map e.to_ring_hom :=
+{ ..e.to_add_equiv.add_submonoid_map s.to_add_submonoid,
+  ..e.to_mul_equiv.submonoid_map s.to_submonoid }
 
-def ring_equiv.subring_equiv_map {A B : Type*} [ring A]
-  [ring B] (e : A ≃+* B) (R : subring A) :
-  R ≃+* R.map e.to_ring_hom :=
-e.subsemiring_equiv_map R.to_subsemiring
+@[simps] def ring_equiv.subring_map {R S : Type*} [ring R] [ring S] (e : R ≃+* S) (s : subring R) :
+  s ≃+* s.map e.to_ring_hom :=
+e.subsemiring_map s.to_subsemiring
 
-def alg_equiv.subalgebra_equiv_map {R A B : Type*} [comm_semiring R] [semiring A]
+@[simps] def alg_equiv.subalgebra_map {R A B : Type*} [comm_semiring R] [semiring A]
   [semiring B] [algebra R A] [algebra R B] (e : A ≃ₐ[R] B) (S : subalgebra R A) :
   S ≃ₐ[R] (S.map e.to_alg_hom) :=
 { commutes' := λ r, by { ext, simp },
-  ..e.to_ring_equiv.subsemiring_equiv_map S.to_subsemiring,
-}
+  ..e.to_ring_equiv.subsemiring_map S.to_subsemiring }
 
-def alg_equiv.intermediate_field_equiv_map {K L M : Type*} [field K] [field L] [field M]
+@[simps] def alg_equiv.intermediate_field_map {K L M : Type*} [field K] [field L] [field M]
   [algebra K L] [algebra K M] (e : L ≃ₐ[K] M) (E : intermediate_field K L) :
   E ≃ₐ[K] (E.map e.to_alg_hom) :=
-e.subalgebra_equiv_map E.to_subalgebra
+e.subalgebra_map E.to_subalgebra
+
 
 -- we've got this, really
 lemma equiv_finite_dimensional {K L L' : Type*} [field K] [field L] [field L']
@@ -108,7 +94,7 @@ linear_equiv.finite_dimensional σ.to_linear_equiv
 lemma im_finite_dimensional {K L : Type*} [field K] [field L] [algebra K L]
 {E : intermediate_field K L} (σ : L ≃ₐ[K] L) (h_findim : finite_dimensional K E): 
 finite_dimensional K (E.map σ.to_alg_hom) :=
-linear_equiv.finite_dimensional (σ.intermediate_field_equiv_map E).to_linear_equiv
+linear_equiv.finite_dimensional (alg_equiv.intermediate_field_map σ E).to_linear_equiv
 
 /-- Given a field extension `L/K`, `finite_exts K L` is the set of
 intermediate field extensions `L/E/K` such that `E/K` is finite -/
