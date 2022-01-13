@@ -4,11 +4,11 @@ import topology.category.CompHaus.default
 import order.filter.ultrafilter
 import normal_closure 
 import topology.algebra.open_subgroup
+import topology.category.Profinite.default 
 
 open group_filter_basis
 
 open_locale classical
-
 
 
 
@@ -251,27 +251,10 @@ begin
     simp,
     exact h_clopen.2,
   },
-  specialize hS U V h_clopen.1 hV_open,
-  have hSUV : S ⊆ U ∪ V,
-  {
-    intros a ha,
-    exact em (a ∈ U),
-  },
-  have hSU : (S ∩ U).nonempty,
-  {
-    use x,
-    exact ⟨hx, hxU⟩,
-  },
-  have hSV : (S ∩ V).nonempty,
-  {
-    use y,
-    exact ⟨hy, hyU⟩,
-  },
-  specialize hS hSUV hSU hSV,
+  specialize hS U V h_clopen.1 hV_open (λ a ha, em (a ∈ U)) ⟨x, hx, hxU⟩ ⟨y, hy, hyU⟩,
   have hUV : U ∩ V = ∅,
   {
    change U ∩ U.compl = ∅,
-   rw ← set.not_nonempty_iff_eq_empty,
    simp, 
   },
   rw hUV at hS,
@@ -296,8 +279,7 @@ lemma coset_closed {G : Type*} [group G] [topological_space G] [topological_grou
 is_closed (left_coset x U) :=
 begin 
   have h' : left_coset x U = (homeomorph.mul_left x) '' U := rfl,
-  rw h',
-  rw homeomorph.is_closed_image,
+  rw [h', homeomorph.is_closed_image],
   exact h,
 end
 
@@ -310,12 +292,10 @@ begin
    change x ≠ 0 at h_ne_zero,
    have h_f_inv : f(x) * f(x⁻¹) = 1,
    {
-     rw ← map_mul f x x⁻¹,
-     rw mul_inv_cancel h_ne_zero,
+     rw [← map_mul f x x⁻¹, mul_inv_cancel h_ne_zero],
      exact map_one f,
    },
-   rw hx at h_f_inv,
-   rw zero_mul at h_f_inv,
+   rw [hx, zero_mul] at h_f_inv,
    exact zero_ne_one h_f_inv,
 end
 
@@ -331,39 +311,19 @@ begin
     simp [inv_mul_eq_one],
     exact h_diff,
   },
-  have hx := diff_equivs_have_diff_values hστ,
-  cases hx with x hx,
+  cases (diff_equivs_have_diff_values hστ) with x hx,
   change (σ⁻¹ * τ) x ≠ x at hx,
   let E := intermediate_field.adjoin K ({x} : set L),
-  use left_coset σ E.fixing_subgroup,
-  refine ⟨_, _, _⟩,
-  {
-    split,
-    {
-      exact coset_open σ (fixing_subgroup_is_open (intermediate_field.adjoin.finite_dimensional (h_int x))),
-    },
-    {
-      exact coset_closed σ (fixing_subgroup_is_closed (intermediate_field.adjoin.finite_dimensional (h_int x))),
-    },
-  },
-  {
-    use 1,
-    exact ⟨E.fixing_subgroup.one_mem', by simp⟩,
-  },
-  {
-    rw mem_left_coset_iff,
-    change ¬ σ⁻¹ * τ ∈ E.fixing_subgroup,
-    rw mem_fixing_subgroup_iff E (σ⁻¹ * τ),
-    simp,
-    use x,
-    split,
-    {
-      exact intermediate_field.mem_adjoin_simple_self K x,
-    },
-    {
-      exact hx,
-    },
-  }
+  refine ⟨left_coset σ E.fixing_subgroup, 
+  ⟨coset_open σ (fixing_subgroup_is_open (intermediate_field.adjoin.finite_dimensional (h_int x))),
+    coset_closed σ (fixing_subgroup_is_closed (intermediate_field.adjoin.finite_dimensional (h_int x)))⟩, 
+    ⟨1, E.fixing_subgroup.one_mem', by simp⟩, 
+    _⟩,
+  rw mem_left_coset_iff,
+  change ¬ σ⁻¹ * τ ∈ E.fixing_subgroup,
+  rw mem_fixing_subgroup_iff E (σ⁻¹ * τ),
+  simp,
+  exact ⟨x, intermediate_field.mem_adjoin_simple_self K x, hx⟩,  
 end
 
 end totally_disconnected
@@ -561,8 +521,7 @@ lemma alg_hom_of_finite_dimensional_of_ultrafilter_functor {K L : Type*} [field 
     have h_pF_pE_res : res ∘ p_F = p_E := rfl,
     have h_maps_commute : ((f.map p_F).map res : filter (E →ₐ[K] L)) = f.map p_E,
     {
-      rw ultrafilter.map_map,
-      rw h_pF_pE_res,
+      rw [ultrafilter.map_map, h_pF_pE_res],
     },
     have hEf  := alg_hom_of_finite_dimensional_of_ultrafilter_spec hE f,
     rw [← σ_E_def, ← p_E_def] at hEf,
@@ -572,9 +531,7 @@ lemma alg_hom_of_finite_dimensional_of_ultrafilter_functor {K L : Type*} [field 
     {
       exact ultrafilter.coe_inj.mp hFf,
     },
-    rw hEf at h_maps_commute,
-    rw hFf' at h_maps_commute,
-    rw ultrafilter.map_pure at h_maps_commute,
+    rw [hEf, hFf', ultrafilter.map_pure] at h_maps_commute,
     have h := filter.pure_injective h_maps_commute,
     rw res_def at h,
     dsimp at h,
@@ -761,8 +718,8 @@ begin
   (alg_hom_of_ultrafilter h_int f) (⟨y, hyE⟩ : E) at hxy,
   change (function_of_ultrafilter h_int f) (⟨x, hxE⟩ : E) = 
   (function_of_ultrafilter h_int f) (⟨y, hyE⟩ : E) at hxy,
-  rw function_of_ultrafilter_spec h_int f hE (⟨x, hxE⟩ : E) at hxy,
-  rw function_of_ultrafilter_spec h_int f hE (⟨y, hyE⟩ : E) at hxy,
+  rw [function_of_ultrafilter_spec h_int f hE (⟨x, hxE⟩ : E), 
+  function_of_ultrafilter_spec h_int f hE (⟨y, hyE⟩ : E)] at hxy,
   have h : (⟨x, hxE⟩ : E) = (⟨y, hyE⟩ : E),
   {
     exact field_hom_injective (alg_hom_of_finite_dimensional_of_ultrafilter hE f).to_ring_hom hxy,
@@ -783,12 +740,10 @@ begin
   have h_finrank_eq : finite_dimensional.finrank K (E.map f) = 
   finite_dimensional.finrank K E,
   {
-    have e := submodule.equiv_map_of_injective (f.to_linear_map) hf_inj E.to_subalgebra.to_submodule,
-    have h_dim_eq := linear_equiv.finrank_eq e,
-    exact h_dim_eq.symm,
+    exact (linear_equiv.finrank_eq (submodule.equiv_map_of_injective (f.to_linear_map) 
+    hf_inj E.to_subalgebra.to_submodule)).symm,
   },
   have h_submod_le : (E.map f).to_subalgebra.to_submodule ≤ E.to_subalgebra.to_submodule := h_map_le,
-  
   exact intermediate_field.to_subalgebra_eq_iff.mp (subalgebra.to_submodule_injective
   (finite_dimensional.eq_of_le_of_finrank_eq h_map_le h_finrank_eq)),
 end
@@ -812,19 +767,14 @@ begin
     simp,
     rw polynomial.mem_roots,
     {
-      rw polynomial.is_root.def,
-      --have h : polynomial.eval (σ a) (polynomial.map (algebra_map K L) p) = 
-      --σ (polynomial.eval a (polynomial.map (algebra_map K L) p)),
-      rw ← polynomial.eval₂_eq_eval_map,
-      rw ← polynomial.alg_hom_eval₂_algebra_map,
+      rw [polynomial.is_root.def, ← polynomial.eval₂_eq_eval_map, ← polynomial.alg_hom_eval₂_algebra_map],
       have hσ0 : σ 0 = 0 := by simp,
       rw ← hσ0,
       apply congr_arg σ,
       simp at ha,
       rw polynomial.mem_roots at ha,
       {
-        rw polynomial.is_root.def at ha,
-        rw ← polynomial.eval₂_eq_eval_map at ha,
+        rw [polynomial.is_root.def, ← polynomial.eval₂_eq_eval_map] at ha,
         exact ha,
       },
       {
@@ -834,14 +784,8 @@ begin
     exact polynomial.map_monic_ne_zero (minpoly.monic (h_int y)),
   },
   have hSE : (S : set L) ⊆ E := intermediate_field.gc.le_u_l (S : set L),
-  have hσSE : σ '' S ⊆ E,
-  {
-    exact set.subset.trans hσSS hSE,
-  },
-  have h1 : E.map σ = intermediate_field.adjoin K (σ '' S),
-  {
-    exact intermediate_field.adjoin_map K S σ,
-  },
+  have hσSE : σ '' S ⊆ E := set.subset.trans hσSS hSE,
+  have h1 : E.map σ = intermediate_field.adjoin K (σ '' S) := intermediate_field.adjoin_map K S σ,
   have h2 : intermediate_field.adjoin K (σ '' S) ≤ E,
   {
     apply intermediate_field.gc.l_le,
@@ -942,8 +886,7 @@ begin
    {
     intro h,
     have h' := congr_arg f h,
-    rw ← alg_equiv.mul_apply at h',
-    rw mul_right_inv at h',
+    rw [← alg_equiv.mul_apply, mul_right_inv] at h',
     exact h',
    },
    {
@@ -964,8 +907,7 @@ begin
   split,
   {
     intro h,
-    rw filter.mem_map at h,
-    rw mem_nhds_iff at h,
+    rw [filter.mem_map, mem_nhds_iff] at h,
     rcases h with ⟨U, h_subset, h_open, hxU⟩,
     rw mem_nhds_iff,
     use left_coset g U,
@@ -1080,8 +1022,7 @@ begin
     split,
     {
       intro hs,
-      rw ← ultrafilter.mem_coe at hs,
-      rw h2 at hs,
+      rw [← ultrafilter.mem_coe, h2] at hs,
       exact hs,
     },
     {
@@ -1154,3 +1095,16 @@ CompHaus :=
     compact_univ := krull_compact h_int h_splits},
   is_hausdorff := krull_t2 K L h_int,
 }
+
+
+def krull_topology_totally_disconnected {K L : Type*} [field K] [field L] [algebra K L] 
+(h_int : ∀ (x : L), is_integral K x) : 
+totally_disconnected_space (L ≃ₐ[K] L) :=
+{ is_totally_disconnected_univ := krull_totally_disconnected h_int}
+
+def krull_topology_profinite {K L : Type*} [field K] [field L] [algebra K L] 
+(h_int : algebra.is_integral K L) (h_splits : ∀ (x : L), polynomial.splits (algebra_map K L) 
+(minpoly K x)) :
+Profinite := 
+{ to_CompHaus := krull_topology_comphaus h_int h_splits,
+  is_totally_disconnected := krull_topology_totally_disconnected h_int}
