@@ -4,63 +4,55 @@ import normal_closure
 
 open_locale classical
 
+/-!
+# Krull topology 
+
+We define the Krull topology on `L ≃ₐ[K] L` for an arbitrary field extension `L/K`. In order to do this,
+we first define a `group_filter_basis` on `L ≃ₐ[K] L`, whose sets are `E.fixing_subgroup` for all 
+intermediate fields `E` with `E/K` finite dimensional. 
+
+## Main Definitions 
+
+- `finite_exts K L`. Given a field extension `L/K`, this is the set of intermediate fields that are
+  finite-dimensional over `K`.
+
+- `fixed_by_finite K L`. Given a field extension `L/K`, `fixed_by_finite K L` is the set of
+  subsets `Gal(L/E)` of `Gal(L/K)`, where `E/K` is finite
+
+- `gal_basis K L`. Given a field extension `L/K`, this is the filter basis on `L ≃ₐ[K] L` whose
+  sets are `Gal(L/E)` for intermediate fields `E` with `E/K` finite. 
+
+- `gal_group_basis K L`. This is the same as `gal_basis K L`, but with the added structure 
+  that it is a group filter basis on `L ≃ₐ[K] L`, rather than just a filter basis. 
+
+- `krull_topology K L`. Given a field extension `L/K`, this is the topology on `L ≃ₐ[K] L`, induced by 
+  the group filter basis `gal_group_basis K L`. 
+
+## Notations 
+
+- In docstrings, we will write `Gal(L/E)` to denote the fixing subgroup of an intermediate field `E`. 
+  That is, `Gal(L/E)` is the subgroup of `L ≃ₐ[K] L` consisting of automorphisms that fix every 
+  element of `E`. In particular, we distinguish between `L ≃ₐ[E] L` and `Gal(L/E)`, since the 
+  former is defined to be a subgroup of `L ≃ₐ[K] L`, while the latter is a group in its own right. 
+
+## Implementation Notes 
+
+- `krull_topology K L` is defined as an instance for type class inference. 
+-/
 
 
+/-- Mapping intermediate fields along algebra equivalences preserves the partial order -/
 lemma intermediate_field.map_mono {K L M : Type*} [field K] [field L] [field M]
   [algebra K L] [algebra K M] {E1 E2 : intermediate_field K L}
-  (σ : L ≃ₐ[K] M) (h12 : E1 ≤ E2) : 
-E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom :=
-set.image_subset σ h12 
+  (e : L ≃ₐ[K] M) (h12 : E1 ≤ E2) : 
+E1.map e.to_alg_hom ≤ E2.map e.to_alg_hom :=
+set.image_subset e h12 
 
+/-- Mapping intermediate fields along the identity does not change them -/
 lemma intermediate_field.map_id {K L : Type*} [field K] [field L] [algebra K L] 
 {E : intermediate_field K L} : 
 E.map (alg_hom.id K L) = E :=
 set_like.coe_injective $ set.image_id _
-
-
-
--- I switched the order -- more complicated thing on the left of an ↔
--- you don't use this anywhere anyway
-lemma int_field_map_iso {K L : Type*} [field K] [field L] [algebra K L] 
-{E1 E2 : intermediate_field K L} (σ : L ≃ₐ[K] L) :
-E1.map σ.to_alg_hom ≤ E2.map σ.to_alg_hom ↔ E1 ≤ E2 :=
-σ.to_equiv.image_subset E1 E2
-
--- you don't use this
-lemma algebra_map_map_inv {K L : Type*} [field K] [field L] [algebra K L] 
-(E : intermediate_field K L) (σ : L ≃ₐ[K] L) : 
-(E.to_subalgebra.map σ.to_alg_hom).map σ.symm.to_alg_hom = E.to_subalgebra :=
-by simp [subalgebra.map_map]
-
--- special case of intermediate_field.adjoin_map
-lemma adjoin_map_le_map_adjoin {K L : Type*} [field K] [field L] [algebra K L] (S : set L) 
-(σ : L ≃ₐ[K] L) : 
-(intermediate_field.adjoin K S).map σ.to_alg_hom ≤ 
-intermediate_field.adjoin K (σ '' S) :=
-le_of_eq (intermediate_field.adjoin_map K S σ)
-
--- this is adjoin_map again
-lemma adjoin_map_eq_map_adjoin {K L : Type*} [field K] [field L] [algebra K L] (S : set L) 
-(σ : L ≃ₐ[K] L) : 
-(intermediate_field.adjoin K S).map σ.to_alg_hom =
-intermediate_field.adjoin K (σ.to_fun '' S) :=
-intermediate_field.adjoin_map K S σ
-
--- more complex thing on the left. You never use this and we have it already.
-lemma eq_subalg_iff_eq_submodule {R : Type*} {A : Type*} [comm_semiring R] [semiring A] 
-[algebra R A] (E1 E2 : subalgebra R A):
-E1.to_submodule = E2.to_submodule ↔ E1 = E2 := 
-subalgebra.to_submodule_inj
-
--- you don't use this either
-lemma span_subalg_of_span_submod {R A : Type*} [comm_semiring R] [semiring A] 
-[algebra R A] (s : set A) (h : submodule.span R s = ⊤) : 
-algebra.adjoin R s = ⊤ :=
-begin
-  refine subalgebra.to_submodule_injective (_ : _ = ⊤),
-  rw [← top_le_iff, ← h],
-  exact algebra.span_le_adjoin R s,
-end
 
 -- this and the next few lemmas would make some nice PR's
 @[simps] def ring_equiv.subsemiring_map {R S : Type*} [non_assoc_semiring R] [non_assoc_semiring S] 
@@ -85,12 +77,8 @@ e.subsemiring_map s.to_subsemiring
 e.subalgebra_map E.to_subalgebra
 
 
--- we've got this, really
-lemma equiv_finite_dimensional {K L L' : Type*} [field K] [field L] [field L']
-[algebra K L] [algebra K L'] (σ : L ≃ₐ[K] L') (h_findim : finite_dimensional K L) :
-finite_dimensional K L' :=
-linear_equiv.finite_dimensional σ.to_linear_equiv
-
+/-- Mapping a finite dimensional intermediate field along an algebra equivalence gives 
+  a finite-dimensional intermediate field. -/
 lemma im_finite_dimensional {K L : Type*} [field K] [field L] [algebra K L]
 {E : intermediate_field K L} (σ : L ≃ₐ[K] L) (h_findim : finite_dimensional K E): 
 finite_dimensional K (E.map σ.to_alg_hom) :=
@@ -103,14 +91,16 @@ set (intermediate_field K L) :=
 {E | finite_dimensional K E}
 
 /-- Given a field extension `L/K`, `fixed_by_finite K L` is the set of
-subsets `Gal(L/E)` of `Gal(L/K)`, where `E/K` is finite -/
+subsets `Gal(L/E)` of `L ≃ₐ[K] L`, where `E/K` is finite -/
 def fixed_by_finite (K L : Type*) [field K] [field L] [algebra K L]: set (subgroup (L ≃ₐ[K] L)) :=
 intermediate_field.fixing_subgroup '' (finite_exts K L)
 
+/-- For an field extension `L/K`, the intermediate field `K` is finite-dimensional over `K` -/
 lemma intermediate_field.finite_dimensional_bot (K L : Type*) [field K] 
   [field L] [algebra K L] : finite_dimensional K (⊥ : intermediate_field K L) :=
 finite_dimensional_of_dim_eq_one intermediate_field.dim_bot 
 
+/-- This lemma says that `Gal(L/K) = L ≃ₐ[K] L` -/
 lemma intermediate_field.fixing_subgroup.bot {K L : Type*} [field K] 
   [field L] [algebra K L] : 
   intermediate_field.fixing_subgroup (⊥ : intermediate_field K L) = ⊤ :=
@@ -123,21 +113,25 @@ begin
   exact f.commutes y,
 end
 
+/-- If `L/K` is a field extension, then we have `Gal(L/K) ∈ fixed_by_finite K L` -/
 lemma top_fixed_by_finite {K L : Type*} [field K] [field L] [algebra K L] : 
   ⊤ ∈ fixed_by_finite K L :=
 ⟨⊥, intermediate_field.finite_dimensional_bot K L, intermediate_field.fixing_subgroup.bot⟩
 
--- we have this, it doesn't need to be here
+/-- If `E1` and `E2` are finite-dimensional intermediate fields, then so is their compositum. 
+  This rephrases a result already in mathlib so that it is compatible with our type classes -/
 lemma finite_dimensional_sup {K L: Type*} [field K] [field L] [algebra K L] 
   (E1 E2 : intermediate_field K L) (h1 : finite_dimensional K E1)
   (h2 : finite_dimensional K E2) : finite_dimensional K ↥(E1 ⊔ E2) :=
 by exactI intermediate_field.finite_dimensional_sup E1 E2
 
+/-- An element of `L ≃ₐ[K] L` is in `Gal(L/E)` if and only if it fixes every element of `E`-/
 lemma mem_fixing_subgroup_iff {K L : Type*} [field K] [field L] [algebra K L] 
 (E : intermediate_field K L) (σ : (L ≃ₐ[K] L)): σ ∈ E.fixing_subgroup ↔  
 ∀ (x : L), x ∈ E → σ x = x :=
 ⟨λ hσ x hx, hσ ⟨x, hx⟩, λ h ⟨x, hx⟩, h x hx⟩
 
+/-- The map `E ↦ Gal(L/E)` is inclusion-reversing -/
 lemma intermediate_field.fixing_subgroup.antimono {K L : Type*} [field K] [field L] [algebra K L] 
 {E1 E2 : intermediate_field K L} (h12 : E1 ≤ E2) : E2.fixing_subgroup ≤ E1.fixing_subgroup :=
 begin
@@ -145,6 +139,8 @@ begin
   exact hσ ⟨x, h12 hx⟩,
 end
 
+/-- Given a field extension `L/K`, `gal_basis K L` is the filter basis on `L ≃ₐ[K] L` whose sets are 
+  `Gal(L/E)` for intermediate fields `E` with `E/K` finite dimensional -/
 def gal_basis (K L : Type*) [field K] [field L] [algebra K L] : filter_basis (L ≃ₐ[K] L) :=
 { sets := subgroup.carrier '' (fixed_by_finite K L),
   nonempty := ⟨⊤, ⊤, top_fixed_by_finite, rfl⟩,
@@ -159,15 +155,14 @@ def gal_basis (K L : Type*) [field K] [field L] [algebra K L] : filter_basis (L 
   end
 }
 
+/-- A subset of `L ≃ₐ[K] L` is a member of `gal_basis K L` if and only if it is the underlying set
+  of `Gal(L/E)` for some finite subextension `E/K`-/
 lemma mem_gal_basis_iff (K L : Type*) [field K] [field L] [algebra K L] 
 (U : set (L ≃ₐ[K] L)) : U ∈ gal_basis K L ↔ U ∈ subgroup.carrier '' (fixed_by_finite K L) :=
 iff.rfl
 
--- we have this
-lemma inv_comp {K L : Type*} [field K] [field L] [algebra K L] (σ : L ≃ₐ[K] L) (x : L) :
-σ(σ⁻¹(x)) = x :=
-alg_equiv.apply_symm_apply σ x
-
+/-- For a field extension `L/K`, `gal_group_basis K L` is the group filter basis on `L ≃ₐ[K] L` whose 
+  sets are `Gal(L/E)` for finite subextensions `E/K` -/
 def gal_group_basis (K L : Type*) [field K] [field L] [algebra K L] : 
 group_filter_basis (L ≃ₐ[K] L) :=
 { to_filter_basis := gal_basis K L,
@@ -197,17 +192,20 @@ group_filter_basis (L ≃ₐ[K] L) :=
       exact hg (σ⁻¹ x) h_in_F,
     },
     rw h_g_fix,
-    rw inv_comp,
+    change σ(σ⁻¹ x) = x,
+    exact alg_equiv.apply_symm_apply σ x,
   end
 }
 
-
+/-- For a field extension `L/K`, `krull_topology K L` is the topological space structure on 
+  `L ≃ₐ[K] L` induced by the group filter basis `gal_group_basis K L` -/
 @[instance]
 def krull_topology (K L : Type*) [field K] [field L] [algebra K L] :
 topological_space (L ≃ₐ[K] L) :=
 group_filter_basis.topology (gal_group_basis K L)
 
-
+/-- For a field extension `L/K`, `krull_topological_group K L` is the topological group consisting of
+  `L ≃ₐ[K] L`, together with the Krull topology `krull_topology K L` -/
 def krull_topological_group (K L : Type*) [field K] [field L] [algebra K L] :
 topological_group (L ≃ₐ[K] L) :=
 group_filter_basis.is_topological_group (gal_group_basis K L)

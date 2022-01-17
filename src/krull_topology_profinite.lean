@@ -1,16 +1,18 @@
 import field_theory.galois 
-import group_filter_basis
+import krull_topology
 import topology.category.CompHaus.default
 import order.filter.ultrafilter
 import normal_closure 
 import topology.algebra.open_subgroup
 import topology.category.Profinite.default 
 
-open group_filter_basis
+--open krull_topology
 
 open_locale classical
 
+/-!
 
+-/
 
 lemma diff_equivs_have_diff_values {K L : Type*} [field K] [field L] [algebra K L]
 {f g : L ≃ₐ[K] L} (h : f ≠ g) :
@@ -475,8 +477,6 @@ begin
   rw inclusion_eq_identity,
   simp,
 end
-
-
 
 lemma ultrafilter.map_map {X Y Z: Type*} (m : X → Y) (n : Y → Z) (f : ultrafilter X) :
 (f.map m).map n = f.map(n ∘ m) :=
@@ -1095,7 +1095,6 @@ CompHaus :=
     compact_univ := krull_compact h_int h_splits},
   is_hausdorff := krull_t2 K L h_int,
 }
-
 
 def krull_topology_totally_disconnected {K L : Type*} [field K] [field L] [algebra K L] 
 (h_int : ∀ (x : L), is_integral K x) : 
