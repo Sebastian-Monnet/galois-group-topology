@@ -2,16 +2,64 @@ import field_theory.galois
 import krull_topology
 import topology.category.CompHaus.default
 import order.filter.ultrafilter
-import normal_closure 
 import topology.algebra.open_subgroup
 import topology.category.Profinite.default 
 
---open krull_topology
 
 open_locale classical
 
 /-!
+# Krull topology profinite
 
+Let `L/K` be a normal algebraic field extension. We show that the Krull topology on `L ≃ₐ[K] L` is 
+profinite, in the sense that it is a compact, Hausdorff, and totally disconnected topological space. 
+
+## Main Definitions
+
+- `krull_t2 K L h_int`. For an integral field extension `L/K`,`krull_t2 K L h_int` term of type 
+  `t2_space(L ≃ₐ[K] L)`. The existence of the such a term implies that the Krull topology is 
+  Hausdorff. Here `h_int` is a term of type `∀ (x : L), is_integral K x`. That is, `h_int` is 
+  a proof that the extension `L/K` is integral. 
+
+- `alg_hom_of_finite_dimensional_of_ultrafilter h_findim f`. Let `L/E/K` be a tower of fields and let 
+  `h_findim : finite_dimensional K L` be a proof that `E/K` is finite-dimensional. Let 
+  `f : ultrafilter(L ≃ₐ[K] L)`. The restriction map `(L ≃ₐ[K] L) → (E →ₐ[K] L)` pushes `f`
+  forward to an ultrafilter `f*` on `(E →ₐ[K] L)`. Since `(E →ₐ[K] L)` is a finite set, any 
+  ultrafilter on it is principal. Therefore, `f*` is a principal ultrafilter, and 
+  `alg_hom_of_finite_dimensional_ultrafilter h_findim f` generates it. 
+
+- `function_of_ultrafilter h_int f`. Let `L/E/K` be a tower of fields, with `E/K` finite Let `f` be 
+  an ultrafilter on `L ≃ₐ[K] L`, and let `h_int : ∀ (x : L), is_integral K x`. Write 
+  `σ_E` for `alg_hom_of_finite_dimensional_of_ultrafilter h_findim f`, where 
+  `h_findim : finite_dimensional K E`. Each `σ_E` is a map `E → L`, and we would like to 
+  glue these maps together to obtain a map `L → L`. This glued map is 
+  `function_of_ultrafilter h_int f`. 
+
+- `alg_hom_of_ultrafilter h_int f`. Let `L/K` be an integral field extension and let 
+  `h_int : ∀ (x : L), is_integral K x`. Let `f` be an ultrafilter on `L ≃ₐ[K] L`. Then 
+  `alg_hom_of_ultrafilter h_int f` is a term of `L →ₐ[K] L` whose underlying map is 
+  `function_of_ultrafilter h_int f`. 
+
+- `equiv_of_ultrafilter h_int f`. Let `L/K` be an integral field extension and let 
+  `h_int : ∀ (x : L), is_integral K x`. Let `f` be an ultrafilter on `L ≃ₐ[K] L`. Then 
+  `equiv_of_ultrafilter h_int f`is a term of `L ≃ₐ[K] L` whose underlying map is
+  `function_of_ultrafilter h_int f`. 
+
+- `krull_topology_comphaus h_int h_splits`. Let `L/K` be an integral, normal field extension. Let 
+  `h_int : ∀ (x : L), is_integral K x` and `h_splits : ∀ (x : L), polynomial.splits (algebra_map K L) (minpoly K x)`. 
+  That is, `h_int` is a proof that the extension is integral, and `h_splits` is a proof that it is normal. Then 
+  `krull_topology_comphaus h_int h_splits` is a term of type `CompHaus` whose underlying topology is the Krull topology 
+  on `L ≃ₐ[K] L`. 
+
+- `krull_topology_totally_disconnected h_int`. Let `L/K` be an integral field extension. Let 
+  `h_int : ∀ (x : L), is_integral K x`. Then `krull_topology_totally_disconnected h_int` is a term of type 
+  `totally_disconnected_space (L ≃ₐ[K] L)`, whose underlying topology is the Krull topology. 
+
+- `krull_topology_profinite h_int h_splits`. Let `L/K` be an integral, normal field extension. Let 
+  `h_int : ∀ (x : L), is_integral K x` and `h_splits : ∀ (x : L), polynomial.splits (algebra_map K L) (minpoly K x)`. 
+  That is, `h_int` is a proof that the extension is integral, and `h_splits` is a proof that it is normal. Then 
+  `krull_topology_profinite h_int h_splits` is a term of type `Profinite`, whose underlying topological space is the
+  Krull topology on `L ≃ₐ[K] L`. 
 -/
 
 lemma diff_equivs_have_diff_values {K L : Type*} [field K] [field L] [algebra K L]
@@ -174,7 +222,6 @@ begin
   exact h,
 end
 
-
 def krull_t2 (K L : Type*) [field K] [field L] [algebra K L] (h_int : 
 ∀ (x : L), is_integral K x):
 t2_space (L ≃ₐ[K] L)  :=
@@ -187,7 +234,8 @@ begin
   {
     change f⁻¹(g x) ≠ x,
     apply ne_of_apply_ne f,
-    rw inv_comp f (g x),
+    change f (f.symm (g x)) ≠ f x,
+    rw alg_equiv.apply_symm_apply f (g x),
     rw ne_comm,
     exact hx,
   },
@@ -225,14 +273,6 @@ end}
 
 section totally_disconnected
 
-example (p : Prop) : p ∨ ¬ p := by library_search
-
-example (X : Type*) (S : set X) :
-S ∩ S.compl = ∅ :=
-begin
-  rw ← set.not_nonempty_iff_eq_empty,
-  simp,
-end
 
 lemma is_totally_disconnected_of_clopen_set {X : Type*} [topological_space X] 
 (h_exists_clopen : ∀ {x y : X} (h_diff : x ≠ y), ∃ (U : set X) (h_clopen : is_clopen U), x ∈ U ∧ y ∉ U) :
@@ -855,8 +895,6 @@ begin
   exact function_of_ultrafilter_spec h_int f h_findim x,
 end
 
-#check function_of_ultrafilter_spec
-
 def res {K L : Type*} [field K] [field L] [algebra K L] (E : intermediate_field K L):
 (L ≃ₐ[K] L) → (E →ₐ[K] L) :=
 λ f, f.to_alg_hom.comp E.val
@@ -869,12 +907,6 @@ begin
   simp,
 end
 
-example (G : Type*) [group G] (S : set G) (x y : G) (h : x ∈ left_coset y S) :
-y⁻¹ * x ∈ S :=
-begin
-  rw mem_left_coset_iff at h, 
-  exact h,
-end
 
 -- I know this is a terrible name
 lemma inv_mul_alg_equiv_of_elem {K L : Type*} [field K] [field L] [algebra K L]
@@ -950,8 +982,6 @@ begin
   },
 end
 
-example (G : Type*) [group G] (x y z : G):
-x⁻¹ * y = z ↔ y = x * z := by refine inv_mul_eq_iff_eq_mul
 
 lemma sigma_is_limit {K L : Type*} [field K] [field L] [algebra K L] 
 (h_int : algebra.is_integral K L) (h_splits : ∀ (x : L), polynomial.splits (algebra_map K L) 
@@ -989,7 +1019,7 @@ begin
   have hA_coset_cont_H : ∃ (E : intermediate_field K L), finite_dimensional K E 
   ∧ E.fixing_subgroup.carrier ⊆ left_coset σ⁻¹ A,
   {
-    rw [nhds_one_eq, filter_basis.mem_filter_iff] at hA_coset,
+    rw [group_filter_basis.nhds_one_eq, filter_basis.mem_filter_iff] at hA_coset,
     rcases hA_coset with ⟨H_set, hH, hA_coset⟩,
     change H_set ∈ gal_basis K L at hH,
     rw mem_gal_basis_iff at hH,

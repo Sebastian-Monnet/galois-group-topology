@@ -1,6 +1,6 @@
 import field_theory.galois
 import topology.algebra.filter_basis
-import normal_closure
+import algebra.algebra.subalgebra
 
 open_locale classical
 
@@ -54,35 +54,12 @@ lemma intermediate_field.map_id {K L : Type*} [field K] [field L] [algebra K L]
 E.map (alg_hom.id K L) = E :=
 set_like.coe_injective $ set.image_id _
 
--- this and the next few lemmas would make some nice PR's
-@[simps] def ring_equiv.subsemiring_map {R S : Type*} [non_assoc_semiring R] [non_assoc_semiring S] 
- (e : R ≃+* S) (s : subsemiring R) :
-  s ≃+* s.map e.to_ring_hom :=
-{ ..e.to_add_equiv.add_submonoid_map s.to_add_submonoid,
-  ..e.to_mul_equiv.submonoid_map s.to_submonoid }
-
-@[simps] def ring_equiv.subring_map {R S : Type*} [ring R] [ring S] (e : R ≃+* S) (s : subring R) :
-  s ≃+* s.map e.to_ring_hom :=
-e.subsemiring_map s.to_subsemiring
-
-@[simps] def alg_equiv.subalgebra_map {R A B : Type*} [comm_semiring R] [semiring A]
-  [semiring B] [algebra R A] [algebra R B] (e : A ≃ₐ[R] B) (S : subalgebra R A) :
-  S ≃ₐ[R] (S.map e.to_alg_hom) :=
-{ commutes' := λ r, by { ext, simp },
-  ..e.to_ring_equiv.subsemiring_map S.to_subsemiring }
-
-@[simps] def alg_equiv.intermediate_field_map {K L M : Type*} [field K] [field L] [field M]
-  [algebra K L] [algebra K M] (e : L ≃ₐ[K] M) (E : intermediate_field K L) :
-  E ≃ₐ[K] (E.map e.to_alg_hom) :=
-e.subalgebra_map E.to_subalgebra
-
-
 /-- Mapping a finite dimensional intermediate field along an algebra equivalence gives 
   a finite-dimensional intermediate field. -/
 lemma im_finite_dimensional {K L : Type*} [field K] [field L] [algebra K L]
 {E : intermediate_field K L} (σ : L ≃ₐ[K] L) (h_findim : finite_dimensional K E): 
 finite_dimensional K (E.map σ.to_alg_hom) :=
-linear_equiv.finite_dimensional (alg_equiv.intermediate_field_map σ E).to_linear_equiv
+linear_equiv.finite_dimensional (intermediate_field.intermediate_field_map σ E).to_linear_equiv
 
 /-- Given a field extension `L/K`, `finite_exts K L` is the set of
 intermediate field extensions `L/E/K` such that `E/K` is finite -/
@@ -152,8 +129,7 @@ def gal_basis (K L : Type*) [field K] [field L] [algebra K L] : filter_basis (L 
     rw set.subset_inter_iff,
     exact ⟨intermediate_field.fixing_subgroup.antimono le_sup_left,
       intermediate_field.fixing_subgroup.antimono le_sup_right⟩,
-  end
-}
+  end }
 
 /-- A subset of `L ≃ₐ[K] L` is a member of `gal_basis K L` if and only if it is the underlying set
   of `Gal(L/E)` for some finite subextension `E/K`-/
@@ -189,13 +165,11 @@ group_filter_basis (L ≃ₐ[K] L) :=
     have h_in_F : σ⁻¹ x ∈ F := ⟨x, hx, by {dsimp, rw ← alg_equiv.inv_fun_eq_symm, refl }⟩,
     have h_g_fix : g (σ⁻¹ x) = (σ⁻¹ x),
     { rw [subgroup.mem_carrier, mem_fixing_subgroup_iff F g] at hg,
-      exact hg (σ⁻¹ x) h_in_F,
-    },
+      exact hg (σ⁻¹ x) h_in_F },
     rw h_g_fix,
     change σ(σ⁻¹ x) = x,
     exact alg_equiv.apply_symm_apply σ x,
-  end
-}
+  end }
 
 /-- For a field extension `L/K`, `krull_topology K L` is the topological space structure on 
   `L ≃ₐ[K] L` induced by the group filter basis `gal_group_basis K L` -/
