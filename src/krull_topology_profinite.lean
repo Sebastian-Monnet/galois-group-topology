@@ -1,5 +1,5 @@
 import field_theory.galois 
-import krull_topology
+import field_theory.krull_topology
 import topology.category.CompHaus.default
 import order.filter.ultrafilter
 import topology.algebra.open_subgroup
@@ -14,7 +14,7 @@ open_locale classical
 Let `L/K` be a normal algebraic field extension. We show that the Krull topology on `L ≃ₐ[K] L` is 
 profinite, in the sense that it is a compact, Hausdorff, and totally disconnected topological space. 
 
-## Main Definitions
+## Main definitions
 
 - `krull_t2 K L h_int`. For an integral field extension `L/K`,`krull_t2 K L h_int` term of type 
   `t2_space(L ≃ₐ[K] L)`. The existence of the such a term implies that the Krull topology is 
@@ -60,8 +60,16 @@ profinite, in the sense that it is a compact, Hausdorff, and totally disconnecte
   That is, `h_int` is a proof that the extension is integral, and `h_splits` is a proof that it is normal. Then 
   `krull_topology_profinite h_int h_splits` is a term of type `Profinite`, whose underlying topological space is the
   Krull topology on `L ≃ₐ[K] L`. 
+
+## Main results
+
+- `krull_topology_compact h_int h_splits`. If `L/K` be an integral, normal field extension, then 
+  the Krull topology on `L ≃ₐ[K] L` is compact. 
+
 -/
 
+/-- If `f,g : L → L` are distinct `K`-algebra equivalences, then there is some `x ∈ L` with 
+  `f(x) ≠ g(x)`. -/
 lemma diff_equivs_have_diff_values {K L : Type*} [field K] [field L] [algebra K L]
 {f g : L ≃ₐ[K] L} (h : f ≠ g) :
 ∃ (x : L), f x ≠ g x :=
@@ -77,7 +85,7 @@ begin
   exact h h_eq,
 end
 
-
+/-- If a subset of a topology space contains a nonempty open set, then its interior is nonempty. -/
 lemma nonempty_interior_of_open_subset {X : Type*} [topological_space X] {S U : set X}
 (hUS : U ⊆ S) (hU_open : is_open U) (hU_nonempty : U.nonempty):
 (interior S).nonempty :=
@@ -86,6 +94,7 @@ begin
   exact ⟨x, (interior_maximal hUS hU_open) hxU⟩,
 end
 
+/-- Given a topological group `G`, the map `G → G, x ↦ x⁻¹` is open. -/
 lemma inv_open_map {G : Type*} [group G] [topological_space G] 
 [topological_group G] :
 is_open_map (λ (x : G), x⁻¹) :=
@@ -110,6 +119,9 @@ begin
   exact h_cont U hU,
 end
 
+/-- Suppose that  `H` is a subgroup of a topological group `G` such that `1` is in the interior 
+  of `H`. Then the interior of `H` is a subgroup of `G`. Here we define the appropriate term 
+  of `subgroup G`, whose carrier is the interior of `H`. -/
 def subgroup_of_interior_of_subgroup {G : Type*} [group G] [topological_space G] 
 [topological_group G] {H : subgroup G} (h1_int : (1 : G) ∈ interior H.carrier) :
 subgroup G :=
@@ -158,8 +170,6 @@ subgroup G :=
   end
   }
 
-
-
 lemma subgroup_of_interior_of_subgroup_open {G : Type*} [group G] [topological_space G] 
 [topological_group G] {H : subgroup G} (h1_int : (1 : G) ∈ interior H.carrier) :
 is_open (subgroup_of_interior_of_subgroup h1_int).carrier :=
@@ -168,6 +178,8 @@ begin
   exact is_open_interior,
 end
 
+/-- Let `G` be a topological group and let `H1 ≤ H2` be subgroups. If `H1` is open, then so
+  is `H2`. -/
 lemma open_subgroup_of_open_subgroup {G : Type*} [group G] [topological_space G] 
 [topological_group G] (H1 H2 : subgroup G) (h_le : H1 ≤ H2) (h_open : is_open H1.carrier) :
 is_open H2.carrier :=
@@ -199,7 +211,8 @@ is_open H.carrier :=
 open_subgroup_of_open_subgroup (subgroup_of_interior_of_subgroup h_1_int)
   H interior_subset (subgroup_of_interior_of_subgroup_open h_1_int)
 
-
+/-- Let `L/E/K` be a tower of fields with `E/K` finite. Then `Gal(L/E)` is an open subgroup of 
+  `L ≃ₐ[K] L`. -/
 lemma fixing_subgroup_is_open {K L : Type*} [field K] [field L] [algebra K L] 
 {E : intermediate_field K L} (h_findim : finite_dimensional K E) :
 is_open (E.fixing_subgroup : set (L ≃ₐ[K] L)) :=
@@ -212,6 +225,7 @@ begin
   exact open_subgroup_of_nonempty_interior ⟨U, ⟨hU_open, hU_le⟩, h1U⟩,
 end
 
+/-- An open subset of a topological group has open cosets. -/
 lemma coset_open {G : Type*} [group G] [topological_space G] [topological_group G]
 {U : set G} (x : G) (h : is_open U) :
 is_open (left_coset x U) :=
@@ -222,6 +236,7 @@ begin
   exact h,
 end
 
+/-- If `L/K` is an algebraic extension, then the Krull topology on `L ≃ₐ[K] L` is Hausdorff.-/
 def krull_t2 (K L : Type*) [field K] [field L] [algebra K L] (h_int : 
 ∀ (x : L), is_integral K x):
 t2_space (L ≃ₐ[K] L)  :=
@@ -610,6 +625,33 @@ begin
    simp [h'],
 end
 
+lemma adj_finset_finite_dimensional {K L : Type*} [field K] [field L] [algebra K L]
+(S : finset L)  
+(h_int : ∀ (x : L), x ∈ S → is_integral K x) : 
+finite_dimensional K (intermediate_field.adjoin K (coe S : set L)) :=
+begin
+  refine intermediate_field.induction_on_adjoin_finset (S) (λ (E : intermediate_field K L), 
+  finite_dimensional K E) _ _,
+  {
+    have temp : (⊥ : intermediate_field K L) = (⊥ : intermediate_field K L) := rfl,
+    rw ← intermediate_field.finrank_eq_one_iff at temp,
+    refine finite_dimensional.finite_dimensional_of_finrank _,
+    rw temp,
+    exact zero_lt_one,
+  },
+  {
+    intros E x hx,
+    specialize h_int x hx,
+    introI h,
+    haveI h2 : finite_dimensional ↥E (↥E)⟮x⟯,
+    {
+      apply intermediate_field.adjoin.finite_dimensional,
+      exact is_integral_of_is_scalar_tower x h_int,
+    },
+    change finite_dimensional K ↥(↥E)⟮x⟯,
+    exact finite_dimensional.trans K ↥E ↥(↥E)⟮x⟯,
+  },
+end
 
 noncomputable def alg_hom_of_ultrafilter {K L : Type*} [field K] [field L] [algebra K L] 
 (h_int : algebra.is_integral K L) (f : ultrafilter (L ≃ₐ[K] L)) :
@@ -1107,7 +1149,7 @@ begin
 end
 
 
-lemma krull_compact {K L : Type*} [field K] [field L] [algebra K L] 
+lemma krull_topology_compact {K L : Type*} [field K] [field L] [algebra K L] 
 (h_int : algebra.is_integral K L) (h_splits : ∀ (x : L), polynomial.splits (algebra_map K L) 
 (minpoly K x))  :
 is_compact (set.univ : set (L ≃ₐ[K] L)) := is_compact_iff_ultrafilter_le_nhds.2
@@ -1122,7 +1164,7 @@ def krull_topology_comphaus {K L : Type*} [field K] [field L] [algebra K L]
 CompHaus :=
 { to_Top := Top.of (L ≃ₐ[K] L),
   is_compact := {
-    compact_univ := krull_compact h_int h_splits},
+    compact_univ := krull_topology_compact h_int h_splits},
   is_hausdorff := krull_t2 K L h_int,
 }
 

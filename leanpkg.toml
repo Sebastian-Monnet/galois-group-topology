@@ -1,8 +1,8 @@
 [package]
 name = "galois-group-topology"
 version = "0.1"
-lean_version = "leanprover-community/lean:3.38.0"
+lean_version = "leanprover-community/lean:3.39.0"
 path = "src"
 
 [dependencies]
-mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "d00276917944c101dbd8146b7342b9eb00b77f57"}
+mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "99693218f4dd662f369915a3884f0152ce19aeb9"}
